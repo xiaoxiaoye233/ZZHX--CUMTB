@@ -1,0 +1,65 @@
+[
+ {
+  "record_id": "DR0023",
+  "student_id": "D01",
+  "question_id": "Q043",
+  "grading_flag": "已改判",
+  "note": "同一作答事件曾记为待评分（DR0018），复核后补判为 1 分"
+ },
+ {
+  "record_id": "DR0082",
+  "student_id": "D04",
+  "question_id": "Q015",
+  "grading_flag": "已改判",
+  "note": "同一作答事件曾按 2 分记录（DR0076），复核后改为 1 分"
+ },
+ {
+  "record_id": "DR0133",
+  "student_id": "D07",
+  "question_id": "Q015",
+  "grading_flag": "总分与分项不符",
+  "note": "评分点合计 2 分，总分记 3 分"
+ },
+ {
+  "record_id": "DR0210",
+  "student_id": "D10",
+  "question_id": "Q015",
+  "grading_flag": "已改判",
+  "note": "同一作答事件曾记为待评分（DR0199），复核后补判为 3 分"
+ },
+ {
+  "record_id": "DR0237",
+  "student_id": "D11",
+  "question_id": "Q001",
+  "grading_flag": "已改判",
+  "note": "同一作答事件曾按 0 分记录（DR0236），复核后改为 1 分"
+ },
+ {
+  "record_id": "DR0264",
+  "student_id": "D12",
+  "question_id": "Q029",
+  "grading_flag": "已改判",
+  "note": "同一作答事件曾按 0 分记录（DR0263），复核后改为 1 分"
+ },
+ {
+  "record_id": "DR0446",
+  "student_id": "D22",
+  "question_id": "Q025",
+  "grading_flag": "已改判",
+  "note": "同一作答事件曾按 2 分记录（DR0437），复核后改为 1 分"
+ },
+ {
+  "record_id": "DR0558",
+  "student_id": "D27",
+  "question_id": "Q049",
+  "grading_flag": "已改判",
+  "note": "同一作答事件曾按 3 分记录（DR0555），复核后改为 2 分"
+ },
+ {
+  "record_id": "DR0685",
+  "student_id": "D34",
+  "question_id": "Q017",
+  "grading_flag": "答案一致但判0",
+  "note": "学生答案与参考答案一致，但该题得分为 0"
+ }
+]

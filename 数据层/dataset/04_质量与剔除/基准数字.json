@@ -1,0 +1,255 @@
+{
+ "说明": "这份文件把整个数据集里最关键的 31 个数字钉住。改完代码跑一次 13_build_dataset.py，拿这一份对一遍：全对上，说明数据没被改坏；有不上的，说明口径被动过，先查清再往下走。",
+ "怎么用": "跑一次 13_build_dataset.py，看校验报告里「基准 」开头的断言；或在本文件上逐条看 expected 与 actual。",
+ "rule_set": "R1–R13",
+ "数字": [
+  {
+   "name": "raw_record_count",
+   "expected": 806,
+   "actual": 806,
+   "unit": "条",
+   "description": "作答记录原始行数",
+   "source": "赛题数据/作答记录.csv"
+  },
+  {
+   "name": "used_record_count",
+   "expected": 788,
+   "actual": 788,
+   "unit": "条",
+   "description": "进统计的记录",
+   "source": "index.json / record_count"
+  },
+  {
+   "name": "excluded_record_count",
+   "expected": 18,
+   "actual": 18,
+   "unit": "条",
+   "description": "被剔除记录",
+   "source": "04_质量与剔除/被剔除记录"
+  },
+  {
+   "name": "multi_version_groups",
+   "expected": 7,
+   "actual": 7,
+   "unit": "组",
+   "description": "同一作答的多个修订版本组数",
+   "source": "质量检查清单 multi_version"
+  },
+  {
+   "name": "multi_version_rows",
+   "expected": 14,
+   "actual": 14,
+   "unit": "行",
+   "description": "多出来的旧版本条目",
+   "source": "04_质量与剔除/多版本明细"
+  },
+  {
+   "name": "pending_score_records",
+   "expected": 4,
+   "actual": 4,
+   "unit": "条",
+   "description": "待评分",
+   "source": "质量检查清单 pending_score"
+  },
+  {
+   "name": "blank_attempt_records",
+   "expected": 5,
+   "actual": 5,
+   "unit": "条",
+   "description": "未作答",
+   "source": "质量检查清单 blank_attempt"
+  },
+  {
+   "name": "score_over_full_records",
+   "expected": 2,
+   "actual": 2,
+   "unit": "条",
+   "description": "得分超满分",
+   "source": "质量检查清单 score_over_full"
+  },
+  {
+   "name": "cross_node_duplicate_pairs",
+   "expected": 37,
+   "actual": 37,
+   "unit": "对",
+   "description": "同一道题两场都做过",
+   "source": "质量检查清单 cross_node_duplicate"
+  },
+  {
+   "name": "grading_suspect_records",
+   "expected": 9,
+   "actual": 9,
+   "unit": "条",
+   "description": "判分存疑（只标不改）",
+   "source": "04_质量与剔除/判分存疑"
+  },
+  {
+   "name": "total_score",
+   "expected": 745,
+   "actual": 745,
+   "unit": "分",
+   "description": "全班得分",
+   "source": "02_按班级/班级总表 求和"
+  },
+  {
+   "name": "total_full_score",
+   "expected": 1306,
+   "actual": 1306,
+   "unit": "分",
+   "description": "全班满分",
+   "source": "02_按班级/班级总表 求和"
+  },
+  {
+   "name": "overall_score_rate",
+   "expected": 0.5704,
+   "actual": 0.5704,
+   "unit": "比率",
+   "description": "745÷1306",
+   "source": "口径说明"
+  },
+  {
+   "name": "DC01_score_rate",
+   "expected": 0.5871,
+   "actual": 0.5871,
+   "unit": "比率",
+   "description": "418÷712",
+   "source": "班级总表 DC01 求和"
+  },
+  {
+   "name": "DC02_score_rate",
+   "expected": 0.5505,
+   "actual": 0.5505,
+   "unit": "比率",
+   "description": "327÷594",
+   "source": "班级总表 DC02 求和"
+  },
+  {
+   "name": "T02_gap_DC02_vs_DC01",
+   "expected": 0.1323,
+   "actual": 0.1323,
+   "unit": "比率",
+   "description": "T02 上 DC01 比 DC02 高 13.23 个百分点",
+   "source": "班级_主题汇总"
+  },
+  {
+   "name": "grade_T01_score_rate",
+   "expected": 0.5771,
+   "actual": 0.5771,
+   "unit": "比率",
+   "description": "全年级 T01",
+   "source": "班级_主题汇总"
+  },
+  {
+   "name": "student_count",
+   "expected": 40,
+   "actual": 40,
+   "unit": "人",
+   "description": "40 人",
+   "source": "index.json"
+  },
+  {
+   "name": "class_count",
+   "expected": 2,
+   "actual": 2,
+   "unit": "个",
+   "description": "DC01 / DC02",
+   "source": "班级总表"
+  },
+  {
+   "name": "question_count",
+   "expected": 54,
+   "actual": 54,
+   "unit": "道",
+   "description": "Q001–Q054",
+   "source": "题目字典"
+  },
+  {
+   "name": "exam_count",
+   "expected": 2,
+   "actual": 2,
+   "unit": "场",
+   "description": "N01 / N02",
+   "source": "考试字典"
+  },
+  {
+   "name": "indicator_count",
+   "expected": 9,
+   "actual": 9,
+   "unit": "个",
+   "description": "3 主题 × 3 指标",
+   "source": "指标字典"
+  },
+  {
+   "name": "questions_per_indicator",
+   "expected": "6,10,2,8,6,4,7,7,4",
+   "actual": "6,10,2,8,6,4,7,7,4",
+   "unit": "道",
+   "description": "九个指标各自题库题量",
+   "source": "指标字典 questions_in_bank"
+  },
+  {
+   "name": "D17_record_count",
+   "expected": 4,
+   "actual": 4,
+   "unit": "条",
+   "description": "D17 记录最少",
+   "source": "01_按学生/D17"
+  },
+  {
+   "name": "D17_T01I1_coverage",
+   "expected": 0.3333,
+   "actual": 0.3333,
+   "unit": "比率",
+   "description": "2÷6",
+   "source": "01_按学生/D17"
+  },
+  {
+   "name": "D14_score_rate",
+   "expected": 0.9783,
+   "actual": 0.9783,
+   "unit": "比率",
+   "description": "表现最好的代表学生",
+   "source": "01_按学生/D14"
+  },
+  {
+   "name": "level_证据充足",
+   "expected": 132,
+   "actual": 132,
+   "unit": "格",
+   "description": "九个指标里有足够证据、可以下判断的（40 人 × 9 格）",
+   "source": "指标行 conclusion_level 计数"
+  },
+  {
+   "name": "level_证据偏少",
+   "expected": 159,
+   "actual": 159,
+   "unit": "格",
+   "description": "有一点证据、只能看出方向",
+   "source": "指标行 conclusion_level 计数"
+  },
+  {
+   "name": "level_证据不足",
+   "expected": 69,
+   "actual": 69,
+   "unit": "格",
+   "description": "一道没做或没教到，不下判断",
+   "source": "指标行 conclusion_level 计数"
+  },
+  {
+   "name": "D17_T01I1_level",
+   "expected": "证据偏少",
+   "actual": "证据偏少",
+   "unit": "档",
+   "description": "D17 只做过 2 道、判定线 3 道",
+   "source": "01_按学生/D17 T01I1"
+  },
+  {
+   "name": "D17_T01I1_threshold",
+   "expected": 3,
+   "actual": 3,
+   "unit": "道",
+   "description": "T01I1 的判定线：可考 6 道，min(3,6) 但下限 2，取 3",
+   "source": "01_按学生/D17 T01I1 evidence_threshold"
+  }
+ ]
+}

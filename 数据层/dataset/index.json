@@ -1,0 +1,439 @@
+{
+ "schema_version": "1.2",
+ "build_id": "20261123-040417",
+ "generated_at": "2026-11-23 04:04",
+ "quality": {
+  "raw_records": 806,
+  "used_records": 788,
+  "excluded_records": 18,
+  "pending_score": 4,
+  "blank_attempt": 5,
+  "grading_suspect": 9,
+  "note": "判分存疑只标注不改分；剔除记录逐条可查 04_质量与剔除/。"
+ },
+ "rule_set": [
+  "R1",
+  "R2",
+  "R3",
+  "R4",
+  "R5",
+  "R6",
+  "R7",
+  "R8",
+  "R9",
+  "R10",
+  "R11",
+  "R12",
+  "R13"
+ ],
+ "student_count": 40,
+ "record_count": 788,
+ "exam_count": 2,
+ "exams": [
+  "N01",
+  "N02"
+ ],
+ "columns_note": "空值一律 null：null = 没考到/没出题/没数据；0.0 = 考了但没得分。",
+ "students": [
+  {
+   "student_id": "D01",
+   "class_id": "DC01",
+   "record_count": 21,
+   "distinct_question_count": 19,
+   "score_total": 18,
+   "full_score_total": 37,
+   "score_rate": 0.4865,
+   "path": "01_按学生/D01/D01.json"
+  },
+  {
+   "student_id": "D02",
+   "class_id": "DC01",
+   "record_count": 26,
+   "distinct_question_count": 24,
+   "score_total": 16,
+   "full_score_total": 44,
+   "score_rate": 0.3636,
+   "path": "01_按学生/D02/D02.json"
+  },
+  {
+   "student_id": "D03",
+   "class_id": "DC01",
+   "record_count": 19,
+   "distinct_question_count": 18,
+   "score_total": 6,
+   "full_score_total": 35,
+   "score_rate": 0.1714,
+   "path": "01_按学生/D03/D03.json"
+  },
+  {
+   "student_id": "D04",
+   "class_id": "DC01",
+   "record_count": 24,
+   "distinct_question_count": 22,
+   "score_total": 26,
+   "full_score_total": 44,
+   "score_rate": 0.5909,
+   "path": "01_按学生/D04/D04.json"
+  },
+  {
+   "student_id": "D05",
+   "class_id": "DC01",
+   "record_count": 16,
+   "distinct_question_count": 15,
+   "score_total": 6,
+   "full_score_total": 24,
+   "score_rate": 0.25,
+   "path": "01_按学生/D05/D05.json"
+  },
+  {
+   "student_id": "D06",
+   "class_id": "DC01",
+   "record_count": 18,
+   "distinct_question_count": 17,
+   "score_total": 13,
+   "full_score_total": 38,
+   "score_rate": 0.3421,
+   "path": "01_按学生/D06/D06.json"
+  },
+  {
+   "student_id": "D07",
+   "class_id": "DC01",
+   "record_count": 22,
+   "distinct_question_count": 20,
+   "score_total": 26,
+   "full_score_total": 40,
+   "score_rate": 0.65,
+   "path": "01_按学生/D07/D07.json"
+  },
+  {
+   "student_id": "D08",
+   "class_id": "DC01",
+   "record_count": 26,
+   "distinct_question_count": 25,
+   "score_total": 28,
+   "full_score_total": 40,
+   "score_rate": 0.7,
+   "path": "01_按学生/D08/D08.json"
+  },
+  {
+   "student_id": "D09",
+   "class_id": "DC01",
+   "record_count": 20,
+   "distinct_question_count": 19,
+   "score_total": 8,
+   "full_score_total": 30,
+   "score_rate": 0.2667,
+   "path": "01_按学生/D09/D09.json"
+  },
+  {
+   "student_id": "D10",
+   "class_id": "DC01",
+   "record_count": 23,
+   "distinct_question_count": 22,
+   "score_total": 33,
+   "full_score_total": 41,
+   "score_rate": 0.8049,
+   "path": "01_按学生/D10/D10.json"
+  },
+  {
+   "student_id": "D11",
+   "class_id": "DC01",
+   "record_count": 23,
+   "distinct_question_count": 21,
+   "score_total": 25,
+   "full_score_total": 35,
+   "score_rate": 0.7143,
+   "path": "01_按学生/D11/D11.json"
+  },
+  {
+   "student_id": "D12",
+   "class_id": "DC01",
+   "record_count": 26,
+   "distinct_question_count": 24,
+   "score_total": 32,
+   "full_score_total": 44,
+   "score_rate": 0.7273,
+   "path": "01_按学生/D12/D12.json"
+  },
+  {
+   "student_id": "D13",
+   "class_id": "DC01",
+   "record_count": 19,
+   "distinct_question_count": 19,
+   "score_total": 13,
+   "full_score_total": 29,
+   "score_rate": 0.4483,
+   "path": "01_按学生/D13/D13.json"
+  },
+  {
+   "student_id": "D14",
+   "class_id": "DC01",
+   "record_count": 26,
+   "distinct_question_count": 26,
+   "score_total": 45,
+   "full_score_total": 46,
+   "score_rate": 0.9783,
+   "path": "01_按学生/D14/D14.json"
+  },
+  {
+   "student_id": "D15",
+   "class_id": "DC01",
+   "record_count": 27,
+   "distinct_question_count": 27,
+   "score_total": 35,
+   "full_score_total": 43,
+   "score_rate": 0.814,
+   "path": "01_按学生/D15/D15.json"
+  },
+  {
+   "student_id": "D16",
+   "class_id": "DC01",
+   "record_count": 20,
+   "distinct_question_count": 20,
+   "score_total": 24,
+   "full_score_total": 38,
+   "score_rate": 0.6316,
+   "path": "01_按学生/D16/D16.json"
+  },
+  {
+   "student_id": "D17",
+   "class_id": "DC01",
+   "record_count": 4,
+   "distinct_question_count": 4,
+   "score_total": 8,
+   "full_score_total": 8,
+   "score_rate": 1.0,
+   "path": "01_按学生/D17/D17.json"
+  },
+  {
+   "student_id": "D18",
+   "class_id": "DC01",
+   "record_count": 19,
+   "distinct_question_count": 19,
+   "score_total": 24,
+   "full_score_total": 31,
+   "score_rate": 0.7742,
+   "path": "01_按学生/D18/D18.json"
+  },
+  {
+   "student_id": "D19",
+   "class_id": "DC01",
+   "record_count": 18,
+   "distinct_question_count": 15,
+   "score_total": 19,
+   "full_score_total": 32,
+   "score_rate": 0.5938,
+   "path": "01_按学生/D19/D19.json"
+  },
+  {
+   "student_id": "D20",
+   "class_id": "DC01",
+   "record_count": 12,
+   "distinct_question_count": 11,
+   "score_total": 6,
+   "full_score_total": 18,
+   "score_rate": 0.3333,
+   "path": "01_按学生/D20/D20.json"
+  },
+  {
+   "student_id": "D21",
+   "class_id": "DC01",
+   "record_count": 11,
+   "distinct_question_count": 10,
+   "score_total": 7,
+   "full_score_total": 15,
+   "score_rate": 0.4667,
+   "path": "01_按学生/D21/D21.json"
+  },
+  {
+   "student_id": "D22",
+   "class_id": "DC02",
+   "record_count": 23,
+   "distinct_question_count": 21,
+   "score_total": 16,
+   "full_score_total": 35,
+   "score_rate": 0.4571,
+   "path": "01_按学生/D22/D22.json"
+  },
+  {
+   "student_id": "D23",
+   "class_id": "DC02",
+   "record_count": 18,
+   "distinct_question_count": 17,
+   "score_total": 9,
+   "full_score_total": 24,
+   "score_rate": 0.375,
+   "path": "01_按学生/D23/D23.json"
+  },
+  {
+   "student_id": "D24",
+   "class_id": "DC02",
+   "record_count": 22,
+   "distinct_question_count": 21,
+   "score_total": 11,
+   "full_score_total": 30,
+   "score_rate": 0.3667,
+   "path": "01_按学生/D24/D24.json"
+  },
+  {
+   "student_id": "D25",
+   "class_id": "DC02",
+   "record_count": 22,
+   "distinct_question_count": 22,
+   "score_total": 19,
+   "full_score_total": 34,
+   "score_rate": 0.5588,
+   "path": "01_按学生/D25/D25.json"
+  },
+  {
+   "student_id": "D26",
+   "class_id": "DC02",
+   "record_count": 19,
+   "distinct_question_count": 19,
+   "score_total": 23,
+   "full_score_total": 31,
+   "score_rate": 0.7419,
+   "path": "01_按学生/D26/D26.json"
+  },
+  {
+   "student_id": "D27",
+   "class_id": "DC02",
+   "record_count": 17,
+   "distinct_question_count": 17,
+   "score_total": 16,
+   "full_score_total": 25,
+   "score_rate": 0.64,
+   "path": "01_按学生/D27/D27.json"
+  },
+  {
+   "student_id": "D28",
+   "class_id": "DC02",
+   "record_count": 14,
+   "distinct_question_count": 14,
+   "score_total": 13,
+   "full_score_total": 24,
+   "score_rate": 0.5417,
+   "path": "01_按学生/D28/D28.json"
+  },
+  {
+   "student_id": "D29",
+   "class_id": "DC02",
+   "record_count": 23,
+   "distinct_question_count": 21,
+   "score_total": 30,
+   "full_score_total": 35,
+   "score_rate": 0.8571,
+   "path": "01_按学生/D29/D29.json"
+  },
+  {
+   "student_id": "D30",
+   "class_id": "DC02",
+   "record_count": 24,
+   "distinct_question_count": 22,
+   "score_total": 16,
+   "full_score_total": 42,
+   "score_rate": 0.381,
+   "path": "01_按学生/D30/D30.json"
+  },
+  {
+   "student_id": "D31",
+   "class_id": "DC02",
+   "record_count": 12,
+   "distinct_question_count": 12,
+   "score_total": 9,
+   "full_score_total": 22,
+   "score_rate": 0.4091,
+   "path": "01_按学生/D31/D31.json"
+  },
+  {
+   "student_id": "D32",
+   "class_id": "DC02",
+   "record_count": 21,
+   "distinct_question_count": 20,
+   "score_total": 26,
+   "full_score_total": 39,
+   "score_rate": 0.6667,
+   "path": "01_按学生/D32/D32.json"
+  },
+  {
+   "student_id": "D33",
+   "class_id": "DC02",
+   "record_count": 22,
+   "distinct_question_count": 20,
+   "score_total": 30,
+   "full_score_total": 38,
+   "score_rate": 0.7895,
+   "path": "01_按学生/D33/D33.json"
+  },
+  {
+   "student_id": "D34",
+   "class_id": "DC02",
+   "record_count": 23,
+   "distinct_question_count": 23,
+   "score_total": 12,
+   "full_score_total": 41,
+   "score_rate": 0.2927,
+   "path": "01_按学生/D34/D34.json"
+  },
+  {
+   "student_id": "D35",
+   "class_id": "DC02",
+   "record_count": 10,
+   "distinct_question_count": 10,
+   "score_total": 12,
+   "full_score_total": 18,
+   "score_rate": 0.6667,
+   "path": "01_按学生/D35/D35.json"
+  },
+  {
+   "student_id": "D36",
+   "class_id": "DC02",
+   "record_count": 20,
+   "distinct_question_count": 20,
+   "score_total": 33,
+   "full_score_total": 38,
+   "score_rate": 0.8684,
+   "path": "01_按学生/D36/D36.json"
+  },
+  {
+   "student_id": "D37",
+   "class_id": "DC02",
+   "record_count": 13,
+   "distinct_question_count": 12,
+   "score_total": 6,
+   "full_score_total": 21,
+   "score_rate": 0.2857,
+   "path": "01_按学生/D37/D37.json"
+  },
+  {
+   "student_id": "D38",
+   "class_id": "DC02",
+   "record_count": 22,
+   "distinct_question_count": 21,
+   "score_total": 24,
+   "full_score_total": 34,
+   "score_rate": 0.7059,
+   "path": "01_按学生/D38/D38.json"
+  },
+  {
+   "student_id": "D39",
+   "class_id": "DC02",
+   "record_count": 21,
+   "distinct_question_count": 21,
+   "score_total": 11,
+   "full_score_total": 31,
+   "score_rate": 0.3548,
+   "path": "01_按学生/D39/D39.json"
+  },
+  {
+   "student_id": "D40",
+   "class_id": "DC02",
+   "record_count": 22,
+   "distinct_question_count": 21,
+   "score_total": 11,
+   "full_score_total": 32,
+   "score_rate": 0.3438,
+   "path": "01_按学生/D40/D40.json"
+  }
+ ]
+}

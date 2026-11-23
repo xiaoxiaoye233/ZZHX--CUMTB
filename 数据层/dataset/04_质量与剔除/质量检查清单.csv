@@ -1,0 +1,10 @@
+﻿问题代码,严重程度,记录数,样例记录,说明,处置,影响分母
+blank_attempt,error,5,DR0017、DR0034、DR0332、DR0497、DR0744,学生未作答（答案与得分皆空）,不计入统计，也不按 0 分处理,是
+pending_score,error,4,DR0223、DR0275、DR0411、DR0532,有作答内容但尚未评分,不计入统计，也不按 0 分处理,是
+score_over_full,error,2,DR0361、DR0535,得分大于满分，数据错误,剔除，不进入任何统计,是
+answer_text_differs,info,33,DR0008、DR0078、DR0134、DR0133、DR0156、DR0209、DR0204、DR0245,满分记录的作答文本与参考答案写法不同（如 x=9 与 9）,不得按文本比对判分，一律采用记录总分,否
+cross_node_duplicate,info,37,,同一学生同一题目在多个测验节点作答（共 37 对，涉及 25 人）,计入证据时按不同题目去重，同题只算 1 条,否
+multi_version,warning,7,DR0023、DR0082、DR0210、DR0237、DR0264、DR0446、DR0558,同一作答事件有多个修订版本，其中 7 例得分发生变化,按最大修订版本保留一条，全部版本在 quality_report 中披露,否
+question_not_in_node,warning,1,DR0515,该题不在本次测验节点的可用题目清单内（未教先测）,保留记录，但在指标判定中标记 teaching_covered_status=未教,否
+rubric_sum_mismatch,warning,3,DR0133、DR0361、DR0535,各评分点得分之和与记录总分不一致,以记录总分为准，异常留痕,否
+theme_mismatch,warning,1,DR0081,记录里的主题编号与题目与材料表不一致,以材料表为准，记录保留,否

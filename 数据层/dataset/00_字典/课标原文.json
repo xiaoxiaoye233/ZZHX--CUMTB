@@ -1,0 +1,383 @@
+{
+ "说明": "课标原文逐条照抄，只去掉句末标点；`used_part` 写清这个指标用的是哪半句。三段小节的全部条目都列在这里，没被任何指标用到的也留着，方便核对。原件是零文字层扫描件，两页截图在 `05_出处截图/kb_p62.png`、`kb_p63.png`。",
+ "小节": [
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "theme_name": "代数式与整式运算",
+   "heading_path": "四、课程内容 → （3）代数式",
+   "file_pages": [
+    62,
+    63
+   ],
+   "body_pages": [
+    55,
+    56
+   ],
+   "note": "①②③④⑤⑥⑦ 在文件第 62 页（印 55），⑧⑨ 接在文件第 63 页（印 56）开头。",
+   "item_count": 9
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "theme_name": "方程与方程组",
+   "heading_path": "四、课程内容 → 2. 方程与不等式 → （1）方程与方程组",
+   "file_pages": [
+    63
+   ],
+   "body_pages": [
+    56
+   ],
+   "note": "「2. 方程与不等式」是这一页的大标题，「（1）方程与方程组」是它下一级小节。",
+   "item_count": 8
+  },
+  {
+   "group": "CR03",
+   "theme_id": "T03",
+   "theme_name": "不等式与不等式组",
+   "heading_path": "四、课程内容 → 2. 方程与不等式 → （2）不等式与不等式组",
+   "file_pages": [
+    63
+   ],
+   "body_pages": [
+    56
+   ],
+   "note": "与「（1）方程与方程组」同页；脚注：标有 * 的内容为选学内容，不作为考试要求。",
+   "item_count": 3
+  }
+ ],
+ "原文条目": [
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "①",
+   "text": "借助现实情境了解代数式，进一步理解用字母表示数的意义。",
+   "used_by_indicators": "T01I3",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "②",
+   "text": "能分析具体问题中的简单数量关系，并用代数式表示；能根据特定的问题查阅资料，找到所需的公式。",
+   "used_by_indicators": "T01I1、T01I3",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "③",
+   "text": "会把具体数代入代数式进行计算。",
+   "used_by_indicators": "T01I1",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "④",
+   "text": "了解整数指数幂的意义和基本性质；会用科学记数法表示数（包括在计算器上表示）。",
+   "used_by_indicators": null,
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "⑤",
+   "text": "理解整式的概念，掌握合并同类项和去括号的法则；能进行简单的整式加减运算，能进行简单的整式乘法运算（多项式乘法仅限于一次式之间和一次式与二次式的乘法）。",
+   "used_by_indicators": "T01I2",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "⑥",
+   "text": "理解乘法公式 (a+b)(a−b)=a²−b²，(a±b)²=a²±2ab+b²，了解公式的几何背景，能利用公式进行简单的计算和推理。",
+   "used_by_indicators": null,
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "⑦",
+   "text": "能用提公因式法、公式法（直接利用公式不超过二次）进行因式分解（指数是正整数）。",
+   "used_by_indicators": null,
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "⑧",
+   "text": "了解分式和最简分式的概念，能利用分式的基本性质进行约分和通分；能对简单的分式进行加、减、乘、除运算。",
+   "used_by_indicators": null,
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR01",
+   "theme_id": "T01",
+   "section_heading": "（3）代数式",
+   "item_label": "⑨",
+   "text": "了解代数推理（例 66）。",
+   "used_by_indicators": null,
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "①",
+   "text": "能根据现实情境理解方程的意义，能针对具体问题列出方程；理解方程解的意义，经历估计方程解的过程。",
+   "used_by_indicators": "T02I3",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "②",
+   "text": "掌握等式的基本性质；能解一元一次方程和可化为一元一次方程的分式方程。",
+   "used_by_indicators": "T02I1",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "③",
+   "text": "掌握消元法，能解二元一次方程组。",
+   "used_by_indicators": "T02I2",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "④",
+   "text": "* 能解简单的三元一次方程组[1]。",
+   "used_by_indicators": null,
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "⑤",
+   "text": "理解配方法，能用配方法、公式法、因式分解法解数字系数的一元二次方程。",
+   "used_by_indicators": null,
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "⑥",
+   "text": "会用一元二次方程根的判别式判别方程是否有实根及两个实根是否相等。",
+   "used_by_indicators": null,
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "⑦",
+   "text": "了解一元二次方程的根与系数的关系（例 67）。",
+   "used_by_indicators": null,
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR02",
+   "theme_id": "T02",
+   "section_heading": "（1）方程与方程组",
+   "item_label": "⑧",
+   "text": "能根据具体问题的实际意义，检验方程解的合理性。",
+   "used_by_indicators": "T02I3",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR03",
+   "theme_id": "T03",
+   "section_heading": "（2）不等式与不等式组",
+   "item_label": "①",
+   "text": "结合具体问题，了解不等式的意义，探索不等式的基本性质。",
+   "used_by_indicators": "T03I1",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR03",
+   "theme_id": "T03",
+   "section_heading": "（2）不等式与不等式组",
+   "item_label": "②",
+   "text": "能解数字系数的一元一次不等式，并能在数轴上表示出解集；会用数轴确定两个一元一次不等式组成的不等式组的解集。",
+   "used_by_indicators": "T03I1、T03I2",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "group": "CR03",
+   "theme_id": "T03",
+   "section_heading": "（2）不等式与不等式组",
+   "item_label": "③",
+   "text": "能根据具体问题中的数量关系，列出一元一次不等式，解决简单的问题。",
+   "used_by_indicators": "T03I3",
+   "file_page": 63,
+   "body_page": 56
+  }
+ ],
+ "指标对应": [
+  {
+   "indicator_id": "T01I1",
+   "indicator_name": "表示数量关系并代入求值",
+   "citation": "CR01-②",
+   "item_label": "②",
+   "used_part": "前半句：能分析具体问题中的简单数量关系，并用代数式表示",
+   "quote_full": "能分析具体问题中的简单数量关系，并用代数式表示；能根据特定的问题查阅资料，找到所需的公式。",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "indicator_id": "T01I1",
+   "indicator_name": "表示数量关系并代入求值",
+   "citation": "CR01-③",
+   "item_label": "③",
+   "used_part": "整条",
+   "quote_full": "会把具体数代入代数式进行计算。",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "indicator_id": "T01I2",
+   "indicator_name": "识别同类项、去括号并化简",
+   "citation": "CR01-⑤",
+   "item_label": "⑤",
+   "used_part": "前半句：理解整式的概念，掌握合并同类项和去括号的法则；能进行简单的整式加减运算",
+   "quote_full": "理解整式的概念，掌握合并同类项和去括号的法则；能进行简单的整式加减运算，能进行简单的整式乘法运算（多项式乘法仅限于一次式之间和一次式与二次式的乘法）。",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "indicator_id": "T01I3",
+   "indicator_name": "用整式解释具体问题",
+   "citation": "CR01-①",
+   "item_label": "①",
+   "used_part": "整条",
+   "quote_full": "借助现实情境了解代数式，进一步理解用字母表示数的意义。",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "indicator_id": "T01I3",
+   "indicator_name": "用整式解释具体问题",
+   "citation": "CR01-②",
+   "item_label": "②",
+   "used_part": "前半句：能分析具体问题中的简单数量关系，并用代数式表示",
+   "quote_full": "能分析具体问题中的简单数量关系，并用代数式表示；能根据特定的问题查阅资料，找到所需的公式。",
+   "file_page": 62,
+   "body_page": 55
+  },
+  {
+   "indicator_id": "T02I1",
+   "indicator_name": "运用等式性质解一元一次方程",
+   "citation": "CR02-②",
+   "item_label": "②",
+   "used_part": "前半句：掌握等式的基本性质；能解一元一次方程",
+   "quote_full": "掌握等式的基本性质；能解一元一次方程和可化为一元一次方程的分式方程。",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "indicator_id": "T02I2",
+   "indicator_name": "用消元法解二元一次方程组",
+   "citation": "CR02-③",
+   "item_label": "③",
+   "used_part": "整条",
+   "quote_full": "掌握消元法，能解二元一次方程组。",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "indicator_id": "T02I3",
+   "indicator_name": "列方程或方程组解决简单实际问题并检验",
+   "citation": "CR02-①",
+   "item_label": "①",
+   "used_part": "前半句：能根据现实情境理解方程的意义，能针对具体问题列出方程",
+   "quote_full": "能根据现实情境理解方程的意义，能针对具体问题列出方程；理解方程解的意义，经历估计方程解的过程。",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "indicator_id": "T02I3",
+   "indicator_name": "列方程或方程组解决简单实际问题并检验",
+   "citation": "CR02-⑧",
+   "item_label": "⑧",
+   "used_part": "整条",
+   "quote_full": "能根据具体问题的实际意义，检验方程解的合理性。",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "indicator_id": "T03I1",
+   "indicator_name": "运用不等式性质求解，负数乘除时正确改变方向",
+   "citation": "CR03-①",
+   "item_label": "①",
+   "used_part": "整条",
+   "quote_full": "结合具体问题，了解不等式的意义，探索不等式的基本性质。",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "indicator_id": "T03I1",
+   "indicator_name": "运用不等式性质求解，负数乘除时正确改变方向",
+   "citation": "CR03-②",
+   "item_label": "②",
+   "used_part": "前半句：能解数字系数的一元一次不等式，并能在数轴上表示出解集",
+   "quote_full": "能解数字系数的一元一次不等式，并能在数轴上表示出解集；会用数轴确定两个一元一次不等式组成的不等式组的解集。",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "indicator_id": "T03I2",
+   "indicator_name": "求两个一元一次不等式解集的交集",
+   "citation": "CR03-②",
+   "item_label": "②",
+   "used_part": "后半句：会用数轴确定两个一元一次不等式组成的不等式组的解集（与 T03I1 同一条原文）",
+   "quote_full": "能解数字系数的一元一次不等式，并能在数轴上表示出解集；会用数轴确定两个一元一次不等式组成的不等式组的解集。",
+   "file_page": 63,
+   "body_page": 56
+  },
+  {
+   "indicator_id": "T03I3",
+   "indicator_name": "根据实际限制列不等式并解释取值范围",
+   "citation": "CR03-③",
+   "item_label": "③",
+   "used_part": "整条",
+   "quote_full": "能根据具体问题中的数量关系，列出一元一次不等式，解决简单的问题。",
+   "file_page": 63,
+   "body_page": 56
+  }
+ ]
+}

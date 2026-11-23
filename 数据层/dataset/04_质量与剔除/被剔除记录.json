@@ -1,0 +1,200 @@
+[
+ {
+  "record_id": "DR0017",
+  "student_id": "D01",
+  "question_id": "Q029",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "未作答",
+  "score": null,
+  "full_score": 1,
+  "exclusion_reason": "未作答（空答案）"
+ },
+ {
+  "record_id": "DR0018",
+  "student_id": "D01",
+  "question_id": "Q043",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "待评分",
+  "score": null,
+  "full_score": 3,
+  "exclusion_reason": "旧修订版本（已被更高版本替代）"
+ },
+ {
+  "record_id": "DR0034",
+  "student_id": "D02",
+  "question_id": "Q010",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "未作答",
+  "score": null,
+  "full_score": 1,
+  "exclusion_reason": "未作答（空答案）"
+ },
+ {
+  "record_id": "DR0076",
+  "student_id": "D04",
+  "question_id": "Q015",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "已评分",
+  "score": 2,
+  "full_score": 3,
+  "exclusion_reason": "旧修订版本（已被更高版本替代）"
+ },
+ {
+  "record_id": "DR0199",
+  "student_id": "D10",
+  "question_id": "Q015",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "待评分",
+  "score": null,
+  "full_score": 3,
+  "exclusion_reason": "旧修订版本（已被更高版本替代）"
+ },
+ {
+  "record_id": "DR0223",
+  "student_id": "D11",
+  "question_id": "Q025",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "待评分",
+  "score": null,
+  "full_score": 3,
+  "exclusion_reason": "待评分（老师还没判分）"
+ },
+ {
+  "record_id": "DR0236",
+  "student_id": "D11",
+  "question_id": "Q001",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "已评分",
+  "score": 0,
+  "full_score": 1,
+  "exclusion_reason": "旧修订版本（已被更高版本替代）"
+ },
+ {
+  "record_id": "DR0263",
+  "student_id": "D12",
+  "question_id": "Q029",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "已评分",
+  "score": 0,
+  "full_score": 1,
+  "exclusion_reason": "旧修订版本（已被更高版本替代）"
+ },
+ {
+  "record_id": "DR0275",
+  "student_id": "D13",
+  "question_id": "Q007",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "待评分",
+  "score": null,
+  "full_score": 1,
+  "exclusion_reason": "待评分（老师还没判分）"
+ },
+ {
+  "record_id": "DR0332",
+  "student_id": "D15",
+  "question_id": "Q016",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "未作答",
+  "score": null,
+  "full_score": 1,
+  "exclusion_reason": "未作答（空答案）"
+ },
+ {
+  "record_id": "DR0361",
+  "student_id": "D16",
+  "question_id": "Q044",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "已评分",
+  "score": 10,
+  "full_score": 1,
+  "exclusion_reason": "得分超满分（录入错误）"
+ },
+ {
+  "record_id": "DR0411",
+  "student_id": "D20",
+  "question_id": "Q018",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "待评分",
+  "score": null,
+  "full_score": 3,
+  "exclusion_reason": "待评分（老师还没判分）"
+ },
+ {
+  "record_id": "DR0437",
+  "student_id": "D22",
+  "question_id": "Q025",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "已评分",
+  "score": 2,
+  "full_score": 3,
+  "exclusion_reason": "旧修订版本（已被更高版本替代）"
+ },
+ {
+  "record_id": "DR0497",
+  "student_id": "D24",
+  "question_id": "Q029",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "未作答",
+  "score": null,
+  "full_score": 1,
+  "exclusion_reason": "未作答（空答案）"
+ },
+ {
+  "record_id": "DR0532",
+  "student_id": "D26",
+  "question_id": "Q052",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "待评分",
+  "score": null,
+  "full_score": 3,
+  "exclusion_reason": "待评分（老师还没判分）"
+ },
+ {
+  "record_id": "DR0535",
+  "student_id": "D26",
+  "question_id": "Q034",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "已评分",
+  "score": 4,
+  "full_score": 3,
+  "exclusion_reason": "得分超满分（录入错误）"
+ },
+ {
+  "record_id": "DR0555",
+  "student_id": "D27",
+  "question_id": "Q049",
+  "exam_id": "N02",
+  "revision_version": 1,
+  "scoring_status": "已评分",
+  "score": 3,
+  "full_score": 3,
+  "exclusion_reason": "旧修订版本（已被更高版本替代）"
+ },
+ {
+  "record_id": "DR0744",
+  "student_id": "D38",
+  "question_id": "Q009",
+  "exam_id": "N01",
+  "revision_version": 1,
+  "scoring_status": "未作答",
+  "score": null,
+  "full_score": 3,
+  "exclusion_reason": "未作答（空答案）"
+ }
+]

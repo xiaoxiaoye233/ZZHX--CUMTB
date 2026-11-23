@@ -1,0 +1,92 @@
+[
+ {
+  "indicator_id": "T01I1",
+  "indicator_name": "表示数量关系并代入求值",
+  "theme_id": "T01",
+  "theme_name": "代数式与整式运算",
+  "curriculum_scope": "CR01 ①②③⑤ P62/55",
+  "textbook_scope": "上册68-109",
+  "questions_in_bank": 6,
+  "question_ids": "Q001、Q002、Q006、Q007、Q013、Q014"
+ },
+ {
+  "indicator_id": "T01I2",
+  "indicator_name": "识别同类项、去括号并化简",
+  "theme_id": "T01",
+  "theme_name": "代数式与整式运算",
+  "curriculum_scope": "CR01 ①②③⑤ P62/55",
+  "textbook_scope": "上册68-109",
+  "questions_in_bank": 10,
+  "question_ids": "Q003、Q004、Q005、Q008、Q009、Q010、Q012、Q015、Q016、Q017"
+ },
+ {
+  "indicator_id": "T01I3",
+  "indicator_name": "用整式解释具体问题",
+  "theme_id": "T01",
+  "theme_name": "代数式与整式运算",
+  "curriculum_scope": "CR01 ①②③⑤ P62/55",
+  "textbook_scope": "上册68-109",
+  "questions_in_bank": 2,
+  "question_ids": "Q011、Q018"
+ },
+ {
+  "indicator_id": "T02I1",
+  "indicator_name": "运用等式性质解一元一次方程",
+  "theme_id": "T02",
+  "theme_name": "方程与方程组",
+  "curriculum_scope": "CR02 ①②③⑧ P63/56",
+  "textbook_scope": "上册110-148；下册87-119",
+  "questions_in_bank": 8,
+  "question_ids": "Q019、Q020、Q021、Q022、Q023、Q024、Q025、Q026"
+ },
+ {
+  "indicator_id": "T02I2",
+  "indicator_name": "用消元法解二元一次方程组",
+  "theme_id": "T02",
+  "theme_name": "方程与方程组",
+  "curriculum_scope": "CR02 ①②③⑧ P63/56",
+  "textbook_scope": "上册110-148；下册87-119",
+  "questions_in_bank": 6,
+  "question_ids": "Q028、Q029、Q030、Q031、Q032、Q035"
+ },
+ {
+  "indicator_id": "T02I3",
+  "indicator_name": "列方程或方程组解决简单实际问题并检验",
+  "theme_id": "T02",
+  "theme_name": "方程与方程组",
+  "curriculum_scope": "CR02 ①②③⑧ P63/56",
+  "textbook_scope": "上册110-148；下册87-119",
+  "questions_in_bank": 4,
+  "question_ids": "Q027、Q033、Q034、Q036"
+ },
+ {
+  "indicator_id": "T03I1",
+  "indicator_name": "运用不等式性质求解，负数乘除时正确改变方向",
+  "theme_id": "T03",
+  "theme_name": "不等式与不等式组",
+  "curriculum_scope": "CR03 ①②③ P63/56",
+  "textbook_scope": "下册120-145",
+  "questions_in_bank": 7,
+  "question_ids": "Q037、Q038、Q039、Q040、Q041、Q042、Q043"
+ },
+ {
+  "indicator_id": "T03I2",
+  "indicator_name": "求两个一元一次不等式解集的交集",
+  "theme_id": "T03",
+  "theme_name": "不等式与不等式组",
+  "curriculum_scope": "CR03 ①②③ P63/56",
+  "textbook_scope": "下册120-145",
+  "questions_in_bank": 7,
+  "question_ids": "Q044、Q045、Q046、Q047、Q048、Q049、Q053"
+ },
+ {
+  "indicator_id": "T03I3",
+  "indicator_name": "根据实际限制列不等式并解释取值范围",
+  "theme_id": "T03",
+  "theme_name": "不等式与不等式组",
+  "curriculum_scope": "CR03 ①②③ P63/56",
+  "textbook_scope": "下册120-145",
+  "questions_in_bank": 4,
+  "question_ids": "Q050、Q051、Q052、Q054"
+ }
+]

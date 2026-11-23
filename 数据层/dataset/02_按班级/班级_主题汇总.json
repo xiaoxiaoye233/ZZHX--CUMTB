@@ -1,0 +1,101 @@
+[
+ {
+  "group": "DC01",
+  "student_count": 21,
+  "theme_id": "T01",
+  "theme_name": "代数式与整式运算",
+  "distinct_attempted_total": 163,
+  "score": 186,
+  "full_score": 330,
+  "score_rate": 0.5636,
+  "students_with_records": 21
+ },
+ {
+  "group": "DC01",
+  "student_count": 21,
+  "theme_id": "T02",
+  "theme_name": "方程与方程组",
+  "distinct_attempted_total": 141,
+  "score": 138,
+  "full_score": 225,
+  "score_rate": 0.6133,
+  "students_with_records": 20
+ },
+ {
+  "group": "DC01",
+  "student_count": 21,
+  "theme_id": "T03",
+  "theme_name": "不等式与不等式组",
+  "distinct_attempted_total": 93,
+  "score": 94,
+  "full_score": 157,
+  "score_rate": 0.5987,
+  "students_with_records": 18
+ },
+ {
+  "group": "DC02",
+  "student_count": 19,
+  "theme_id": "T01",
+  "theme_name": "代数式与整式运算",
+  "distinct_attempted_total": 153,
+  "score": 162,
+  "full_score": 273,
+  "score_rate": 0.5934,
+  "students_with_records": 19
+ },
+ {
+  "group": "DC02",
+  "student_count": 19,
+  "theme_id": "T02",
+  "theme_name": "方程与方程组",
+  "distinct_attempted_total": 128,
+  "score": 101,
+  "full_score": 210,
+  "score_rate": 0.481,
+  "students_with_records": 19
+ },
+ {
+  "group": "DC02",
+  "student_count": 19,
+  "theme_id": "T03",
+  "theme_name": "不等式与不等式组",
+  "distinct_attempted_total": 73,
+  "score": 64,
+  "full_score": 111,
+  "score_rate": 0.5766,
+  "students_with_records": 16
+ },
+ {
+  "group": "全年级",
+  "student_count": 40,
+  "theme_id": "T01",
+  "theme_name": "代数式与整式运算",
+  "distinct_attempted_total": 316,
+  "score": 348,
+  "full_score": 603,
+  "score_rate": 0.5771,
+  "students_with_records": 40
+ },
+ {
+  "group": "全年级",
+  "student_count": 40,
+  "theme_id": "T02",
+  "theme_name": "方程与方程组",
+  "distinct_attempted_total": 269,
+  "score": 239,
+  "full_score": 435,
+  "score_rate": 0.5494,
+  "students_with_records": 39
+ },
+ {
+  "group": "全年级",
+  "student_count": 40,
+  "theme_id": "T03",
+  "theme_name": "不等式与不等式组",
+  "distinct_attempted_total": 166,
+  "score": 158,
+  "full_score": 268,
+  "score_rate": 0.5896,
+  "students_with_records": 34
+ }
+]
