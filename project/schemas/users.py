@@ -20,6 +20,7 @@ class UserInfoResponse(BaseModel):
     account: str
     role: str
     student_id: Optional[str] = None
+    login_id: str | None = None
 
     # 模型类配置：允许从 ORM 对象属性中取值
     model_config = ConfigDict(

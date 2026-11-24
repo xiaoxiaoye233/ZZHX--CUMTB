@@ -1,12 +1,12 @@
 const baseURL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
 
-export default async function request({ url, method = 'GET', params = {}, data }) {
+export default async function request({ url, method = 'GET', params = {}, data, keepalive = false }) {
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(params)) {
     if (value != null && value !== '') query.set(key, value)
   }
   const search = query.toString()
-  const options = { method, credentials: 'include' }
+  const options = { method, credentials: 'include', keepalive }
 
   if (data instanceof FormData) {
     options.body = data

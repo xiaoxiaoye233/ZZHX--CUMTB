@@ -102,6 +102,7 @@ def _pick_script_python() -> str:
             [exe, "-c", "import pandas"],
             capture_output=True,
             text=True,
+            timeout=15,
         )
         if check.returncode == 0:
             return exe
@@ -124,6 +125,7 @@ def run_steps_scripts() -> list[str]:
             text=True,
             encoding="utf-8",
             errors="replace",
+            timeout=300,
         )
         if result.returncode != 0:
             raise RuntimeError(f"运行脚本 {script.name} 失败：{result.stderr or result.stdout}")

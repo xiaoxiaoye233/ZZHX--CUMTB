@@ -35,10 +35,11 @@ repo_root = Path(__file__).resolve().parents[2]
 _load_env_files(repo_root / ".env", Path(__file__).resolve().parents[1] / ".env")
 
 # 数据库连接（优先读取根目录 .env，否则使用默认 root / 123456 / zjhx_teaching）
-mysql_host = os.environ.get("MYSQL_HOST", "localhost")
+mysql_host = os.environ.get("MYSQL_HOST", "127.0.0.1")
 mysql_port = int(os.environ.get("MYSQL_PORT", "3306"))
 mysql_user = os.environ.get("MYSQL_USER", "root")
-mysql_password = quote_plus(os.environ.get("MYSQL_PASSWORD", "123456"))
+raw_mysql_password = os.environ.get("MYSQL_PASSWORD", "123456")
+mysql_password = quote_plus(raw_mysql_password)
 mysql_database = os.environ.get("MYSQL_DATABASE", "zjhx_teaching")
 async_database_url = (
     f"mysql+aiomysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}?charset=utf8mb4"
@@ -55,9 +56,12 @@ students_data_dir = dataset_dir / "01_按学生"
 # 创建异步引擎
 async_engine = create_async_engine(
     async_database_url,
-    echo=True,          # 可选：输出 SQL 日志
-    pool_size=10,       # 设置连接池中保持的持久连接数
-    max_overflow=20,    # 设置连接池允许创建的额外连接数
+    echo=False,
+    pool_size=10,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+    max_overflow=20,
+    connect_args={"connect_timeout": 2},
 )
 
 # 创建异步会话工厂
@@ -73,9 +77,17 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         try:
             yield session
-            await session.commit()
+            if session.in_transaction():
+                # 只读请求（或 MySQL 未启动走 CSV 兜底时）直接回滚，避免对失效连接执行 commit 报错
+                if session.new or session.dirty or session.deleted:
+                    await session.commit()
+                else:
+                    await session.rollback()
         except Exception:
-            await session.rollback()
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             raise
         finally:
             await session.close()

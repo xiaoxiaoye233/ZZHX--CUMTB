@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import { getStudentAdviceAPI, getStudentChatHistoryAPI } from '@/apis/agent'
+import { computed, reactive, ref } from 'vue'
+import { getStudentChatHistoryAPI, requestStudentLoginAdviceAPI, requestStudentReportPrintAPI } from '@/apis/agent'
 import { getStudentScoreTableAPI } from '@/apis/analysis'
 
 // 请求不到后端时的静态兜底数据（与 01_按学生/D01/D01_速览.csv 完全同构）
@@ -152,31 +152,6 @@ function extractOverviewRows(res) {
   return null
 }
 
-function extractAdviceText(res) {
-  if (typeof res === 'string' && res.trim()) return res.trim()
-  if (!res || typeof res !== 'object') return ''
-
-  const candidate =
-    res.msg ??
-    res.reply ??
-    res.advice ??
-    res.text ??
-    res.content ??
-    (typeof res.data === 'string' ? res.data : undefined) ??
-    res.data?.msg ??
-    res.data?.reply ??
-    res.data?.advice
-
-  if (typeof candidate === 'string' && candidate.trim()) return candidate.trim()
-  if (Array.isArray(candidate) && candidate.length) {
-    return candidate
-      .map((item) => (typeof item === 'string' ? item : item?.text || item?.content || ''))
-      .filter(Boolean)
-      .join('\n')
-  }
-  return ''
-}
-
 function normalizeRow(row, index) {
   const rowType = String(row['行类型'] ?? row.row_type ?? row.rowType ?? 'indicator')
     .trim()
@@ -311,9 +286,9 @@ function buildOverviewModel(rawRows, studentId) {
 export const useStudentStore = defineStore('student', () => {
   const student = ref(null)
   const loading = ref(false)
-  const adviceLoading = ref(false)
-  const agentAdvice = ref('')
+  const historyLoading = ref(false)
   const chatHistory = ref([])
+  const loginResult = ref(null)
   let requestSeq = 0
 
   const indicators = computed(() => student.value?.indicators || [])
@@ -407,12 +382,43 @@ export const useStudentStore = defineStore('student', () => {
     return { sufficient, limited, insufficient }
   })
 
+  function startStudentLogin(studentId, loginId) {
+    if (loginResult.value?.id === loginId) return
+    const result = reactive({
+      id: loginId,
+      studentId: String(studentId).trim().toUpperCase(),
+      advice: null,
+      adviceLoading: true,
+      adviceFailed: false,
+      printStatus: 'in_progress',
+    })
+    loginResult.value = result
+
+    requestStudentLoginAdviceAPI(result.studentId, loginId)
+      .then(({ data }) => {
+        result.advice = data
+      })
+      .catch(() => {
+        result.adviceFailed = true
+      })
+      .finally(() => {
+        result.adviceLoading = false
+      })
+
+    requestStudentReportPrintAPI(result.studentId, loginId)
+      .then(({ data }) => {
+        result.printStatus = data?.status || ''
+      })
+      .catch(() => {
+        result.printStatus = ''
+      })
+  }
+
   async function fetchStudentPageData(studentId = 'D01') {
     const targetId = String(studentId || 'D01').trim().toUpperCase() || 'D01'
     const currentSeq = ++requestSeq
     loading.value = true
-    adviceLoading.value = true
-    agentAdvice.value = ''
+    historyLoading.value = true
     chatHistory.value = []
 
     // 1. 请求后端获取该学生的速览数据，失败则用静态 D01_速览 数据兜底
@@ -430,48 +436,23 @@ export const useStudentStore = defineStore('student', () => {
     student.value = buildOverviewModel(rowsToUse, targetId)
     loading.value = false
 
-    // 2. 先读取该学生的长期会话历史；如果已有历史记录，直接完整展示
     try {
-      const historyRes = await getStudentChatHistoryAPI(targetId)
-      if (currentSeq !== requestSeq) return
-      const savedList = Array.isArray(historyRes?.data) ? historyRes.data : []
-      if (savedList.length > 0) {
-        chatHistory.value = savedList
-        adviceLoading.value = false
-        return
-      }
+      const { data } = await getStudentChatHistoryAPI(targetId)
+      if (currentSeq === requestSeq && Array.isArray(data)) chatHistory.value = data
     } catch {
-      // 后端未就绪或暂无记录时继续走下方生成个性化建议
-    }
-
-    if (currentSeq !== requestSeq) return
-
-    // 3. 首次进入还没有历史记录：自动请求 Agent 生成个性化建议（后端会自动存成长期会话首条记录）
-    try {
-      const adviceRes = await getStudentAdviceAPI(targetId)
-      if (currentSeq !== requestSeq) return
-      const advice = extractAdviceText(adviceRes)
-      if (!advice) return
-      agentAdvice.value = advice
-      chatHistory.value = [
-        { role: 'assistant', tag: 'Agent 老师 · 个性化建议', content: advice },
-      ]
-    } catch {
-      if (currentSeq !== requestSeq) return
-      chatHistory.value = [
-        { role: 'assistant', tag: '系统提示', content: '暂时无法生成个性化建议，请稍后再试。' },
-      ]
+      // 本地会话仍可在历史服务暂时不可用时展示。
     } finally {
-      if (currentSeq === requestSeq) adviceLoading.value = false
+      if (currentSeq === requestSeq) historyLoading.value = false
     }
   }
 
   return {
     student,
     loading,
-    adviceLoading,
-    agentAdvice,
+    historyLoading,
     chatHistory,
+    loginResult,
+    startStudentLogin,
     indicators,
     themes,
     scoredIndicators,

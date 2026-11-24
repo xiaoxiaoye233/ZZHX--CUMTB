@@ -7,7 +7,6 @@ export const loginDemoAPI = ({ account, password }) => {
   return ''
 }
 
-// 以下是后端待实现的会话接口。
 export const loginAPI = ({ account, password, remember = false }) => {
   return request({
     url: '/api/auth/login',
@@ -18,4 +17,8 @@ export const loginAPI = ({ account, password, remember = false }) => {
 
 export const getSessionAPI = () => {
   return request({ url: '/api/auth/me' })
+}
+
+export const logoutAPI = () => {
+  return request({ url: '/api/auth/logout', method: 'POST' })
 }

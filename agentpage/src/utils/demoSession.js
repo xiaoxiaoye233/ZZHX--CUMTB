@@ -29,3 +29,9 @@ export function setDemoStudentId(studentId) {
     sessionStorage.removeItem(studentIdKey)
   }
 }
+
+export function clearDemoSession() {
+  sessionStorage.removeItem(roleKey)
+  sessionStorage.removeItem(accountKey)
+  sessionStorage.removeItem(studentIdKey)
+}

@@ -8,9 +8,14 @@ export const sendAgentMessageAPI = ({ role, studentId, message, sessionId = 'def
   })
 }
 
-// 首次进入学生路由时自动请求 Agent 生成该学生的个性化学习建议
-export const getStudentAdviceAPI = (studentId) => {
-  return request({ url: `/api/students/${encodeURIComponent(studentId)}/advice` })
+// 成功登录后生成该次登录的个性化学习建议。
+export const requestStudentLoginAdviceAPI = (studentId, loginId) => {
+  return request({
+    url: `/api/students/${encodeURIComponent(studentId)}/advice`,
+    method: 'POST',
+    data: { login_id: loginId },
+    keepalive: true,
+  })
 }
 
 // 获取指定学生的长期会话历史（学生端打开路由 + 教师端 Agent 设置按学号查看均使用此接口）
@@ -39,11 +44,56 @@ export const updateAgentConfigAPI = ({ autoPrint }) => {
   })
 }
 
-// 学生每次进入自己的页面时申请生成并打印本次学情报告
+// 学生登录成功后申请生成并打印本次学情报告
 export const requestStudentReportPrintAPI = (studentId, visitId) => {
   return request({
     url: `/api/students/${encodeURIComponent(studentId)}/print-report`,
     method: 'POST',
     data: { visit_id: visitId },
+    keepalive: true,
+  })
+}
+
+// 获取教师上传的教材 PDF 列表（师生共用）
+export const getTextbooksAPI = () => {
+  return request({ url: '/api/agent/textbooks' })
+}
+
+// 教师上传新教材 PDF（同步到后端教材库并触发向量化）
+export const uploadTextbookAPI = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    url: '/api/agent/textbooks',
+    method: 'POST',
+    data: formData,
+  })
+}
+
+// 删除指定教材文件
+export const deleteTextbookAPI = (filename) => {
+  return request({
+    url: `/api/agent/textbooks/${encodeURIComponent(filename)}`,
+    method: 'DELETE',
+  })
+}
+
+// 获取与保存「知识梳理」知识图谱数据
+export const getKnowledgeGraphAPI = () => {
+  return request({ url: '/api/agent/knowledge-graph' })
+}
+
+export const saveKnowledgeGraphAPI = (graphData) => {
+  return request({
+    url: '/api/agent/knowledge-graph',
+    method: 'PUT',
+    data: graphData,
+  })
+}
+
+export const resetKnowledgeGraphAPI = () => {
+  return request({
+    url: '/api/agent/knowledge-graph/reset',
+    method: 'POST',
   })
 }

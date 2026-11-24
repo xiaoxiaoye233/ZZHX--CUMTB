@@ -10,6 +10,7 @@ if str(REPO_ROOT) not in sys.path:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config.db_conf import async_engine
 from crud import teacher as teacher_crud
 from routers import agent, student, teacher, users
 from utils.exception_handlers import register_exception_handlers
@@ -23,7 +24,10 @@ async def lifespan(_app: FastAPI):
         print("MySQL 建库建表并导入 00-04 数据完成:", counts)
     except Exception as exc:
         print(f"[提示] 启动时未能连接 MySQL（接口将自动使用 CSV 兜底）：{exc}")
-    yield
+    try:
+        yield
+    finally:
+        await async_engine.dispose()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -33,10 +37,10 @@ register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     # 允许的源，开发阶段允许所有源，生产环境需要指定源
-    allow_credentials=True,  # 允许携带 cookie
-    allow_methods=["*"],     # 允许的请求方法
-    allow_headers=["*"],     # 允许的请求头
+    allow_origin_regex=r"https?://.*",  # 支持携带 Cookie 的本地开发与局域网跨域请求
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

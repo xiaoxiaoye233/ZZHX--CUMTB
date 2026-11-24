@@ -1,7 +1,7 @@
 """
 学生端 LangChain 智能体模块：
 功能 1：generate_student_advice(student_id)
-    进入学生路由时，自动查数据库 -> 用 ChatPromptTemplate | ChatTongyi | StrOutputParser 生成个性化建议
+    学生登录成功后，自动查数据库 -> 用 ChatPromptTemplate | ChatTongyi | StrOutputParser 生成个性化建议
 功能 2：student_chat(student_id, message)
     学生多轮对话 -> 用 create_agent 结合「教材 RAG 检索工具 + 学生数据库工具 + 防御性提示词 + 本地 JSON 长期会话记忆」回答
 """
@@ -37,26 +37,19 @@ def get_student_history(student_id: str) -> list[dict]:
     return load_chat_history(session_key)
 
 
-def save_student_opening_advice(student_id: str, advice: str) -> None:
-    """首次进入学生路由生成个性化建议后，把它存成长期会话的第一条记录"""
-    text = (advice or "").strip()
-    if not text:
-        return
-    session_key = student_session_key(student_id)
-    append_chat_messages(
-        session_key,
-        [
-            {
-                "role": "assistant",
-                "content": text,
-                "tag": "Agent 老师 · 个性化建议",
-            }
-        ],
-        only_if_empty=True,
-    )
+def save_student_login_advice(student_id: str, login_id: str, advice: str) -> dict:
+    """把这次登录的建议追加到学生的本地长期会话。"""
+    message = {
+        "id": login_id,
+        "role": "assistant",
+        "content": advice,
+        "tag": "Agent 老师 · 个性化建议",
+    }
+    append_chat_messages(student_session_key(student_id), [message])
+    return message
 
 
-# ==================== 功能 1：进入学生路由自动生成个性化建议 ====================
+# ==================== 功能 1：登录后生成个性化建议 ====================
 def _generate_advice(student_id: str, prompt_filename: str) -> str:
     """把 MySQL 学情填入指定提示词，再用学生 Agent 的聊天模型生成建议。"""
     sid = student_id.strip().upper()

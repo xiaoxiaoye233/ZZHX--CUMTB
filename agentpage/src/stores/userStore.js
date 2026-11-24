@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { loginAPI, loginDemoAPI } from '@/apis/user'
+import { getSessionAPI, loginAPI, loginDemoAPI, logoutAPI } from '@/apis/user'
+import { useStudentStore } from '@/stores/studentStore'
 import {
+  clearDemoSession,
   getDemoAccount,
   getDemoRole,
   getDemoStudentId,
@@ -24,10 +26,19 @@ export const useUserStore = defineStore('user', () => {
     studentId.value = nextStudentId || ''
   }
 
-  function restoreRole() {
-    role.value = getDemoRole()
-    account.value = getDemoAccount() || ''
-    studentId.value = getDemoStudentId() || ''
+  async function restoreRole() {
+    try {
+      const { data: user } = await getSessionAPI()
+      saveSession({ role: user.role, account: user.account, studentId: user.student_id })
+    } catch (error) {
+      if (error.status === 401 || error.status === 403) {
+        clearSession()
+      } else {
+        role.value = getDemoRole()
+        account.value = getDemoAccount() || ''
+        studentId.value = getDemoStudentId() || ''
+      }
+    }
     return role.value
   }
 
@@ -57,6 +68,9 @@ export const useUserStore = defineStore('user', () => {
         studentId: nextStudentId,
       })
 
+      if (nextRole === 'student' && nextStudentId && user.login_id) {
+        useStudentStore().startStudentLogin(nextStudentId, user.login_id)
+      }
       return { role: nextRole, account: nextAccount, studentId: nextStudentId }
     } catch (err) {
       // 后端明确返回账号/密码错误或参数错误时直接提示
@@ -80,5 +94,21 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { role, account, studentId, restoreRole, login }
+  function clearSession() {
+    clearDemoSession()
+    useStudentStore().loginResult = null
+    role.value = null
+    account.value = ''
+    studentId.value = ''
+  }
+
+  async function logout() {
+    try {
+      await logoutAPI()
+    } finally {
+      clearSession()
+    }
+  }
+
+  return { role, account, studentId, restoreRole, login, logout }
 })

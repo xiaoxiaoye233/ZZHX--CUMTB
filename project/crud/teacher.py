@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import sys
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # 支持直接运行 python crud/teacher.py 手动建库建表并导入 00-04 数据
@@ -15,6 +15,11 @@ from config.db_conf import (  # noqa: E402
     async_database_url,
     AsyncSessionLocal,
     dataset_dir,
+    mysql_database,
+    mysql_host,
+    mysql_port,
+    mysql_user,
+    raw_mysql_password,
     students_data_dir,
     async_engine,
 )
@@ -386,10 +391,9 @@ async def sync_dataset_to_db(db: AsyncSession) -> dict:
         )
     counts["quality_benchmarks"] = len(bench_items)
 
-    await db.commit()
-
-    # 7. 同步学生文件夹账号到 users 表
+    # 学情和学生账号在同一个事务中提交。
     counts["users"] = await users_crud.sync_users_from_folders(db)
+    await db.commit()
     return counts
 
 
@@ -570,8 +574,210 @@ async def get_teacher_overview(db: AsyncSession) -> dict:
         return get_teacher_overview_from_csv()
 
 
-# 建表 + 同步 00-04 数据和学生账号（前提：已在 MySQL 手动建好 zjhx_teaching 库）
+async def get_class_report_card(db: AsyncSession, class_id: str | None) -> dict | None:
+    profile = StudentProfile
+    record = StudentQuestionRecord
+    class_query = (
+        select(profile.class_id)
+        .where(profile.class_id.is_not(None), profile.class_id != "")
+        .distinct()
+        .order_by(profile.class_id)
+    )
+    classes = list((await db.scalars(class_query)).all())
+    if class_id is not None and class_id not in classes:
+        return None
+    if not classes:
+        return {"classes": [], "class_id": None, "questions": [], "students": []}
+    selected_class = class_id or classes[0]
+
+    # 从班级名册出发，确保没有有效作答记录的学生也出现在成绩单上。
+    score_query = (
+        select(profile.student_id, profile.score_total, record.exam_id, record.question_id, record.score)
+        .select_from(profile)
+        .outerjoin(record, and_(
+            record.student_id == profile.student_id,
+            record.question_id.is_not(None),
+            record.question_id != "",
+            record.score.is_not(None),
+        ))
+        .where(profile.class_id == selected_class)
+        .order_by(profile.student_id)
+    )
+    questions = set()
+    rows = {}
+    for student_id, total_score, exam_id, question_id, score in await db.execute(score_query):
+        total, scores = rows.setdefault(student_id, (total_score, {}))
+        if question_id is not None:
+            key = (exam_id or "", question_id)
+            questions.add(key)
+            scores[key] = scores.get(key, 0) + score
+
+    columns = sorted(questions)
+    return {
+        "classes": classes,
+        "class_id": selected_class,
+        "questions": [{"exam_id": exam_id, "question_id": question_id} for exam_id, question_id in columns],
+        "students": [
+            {
+                "student_id": student_id,
+                "total_score": total,
+                "scores": [scores.get(key) for key in columns],
+            }
+            for student_id, (total, scores) in rows.items()
+        ],
+    }
+
+
+def _format_teacher_tasks_rows(raw_rows: list[dict], ind_meta: dict[str, dict]) -> dict:
+    groups_order: list[str] = []
+    by_class: dict[str, list[dict]] = {}
+    group_counts: dict[str, int] = {}
+
+    for row in raw_rows:
+        group = str(row.get("group_name") or "").strip()
+        ind_id = str(row.get("indicator_id") or "").strip()
+        if not group or not ind_id:
+            continue
+        if group not in by_class:
+            groups_order.append(group)
+            by_class[group] = []
+        if row.get("student_count") is not None:
+            group_counts[group] = int(row["student_count"])
+
+        meta = ind_meta.get(ind_id, {})
+        by_class[group].append(
+            {
+                "indicator_id": ind_id,
+                "indicator_name": row.get("indicator_name") or meta.get("indicator_name") or ind_id,
+                "theme_id": row.get("theme_id") or meta.get("theme_id") or "",
+                "theme_name": meta.get("theme_name") or row.get("theme_id") or "",
+                "textbook_scope": meta.get("textbook_scope") or "",
+                "questions_in_bank": meta.get("questions_in_bank"),
+                "student_count": row.get("student_count"),
+                "recorded_students": row.get("recorded_students"),
+                "eligible_questions_total": row.get("eligible_questions_total"),
+                "done_questions_total": row.get("done_questions_total"),
+                "score": row.get("score"),
+                "full_score": row.get("full_score"),
+                "score_rate": row.get("score_rate"),
+            }
+        )
+
+    # 让「全年级」排在最前面作为“全部班级”，其余班级按名称排序
+    sorted_groups = sorted(
+        groups_order,
+        key=lambda g: (0 if g == "全年级" else 1, g),
+    )
+    classes = [
+        {
+            "key": g,
+            "label": "全部班级" if g == "全年级" else f"{g} 班",
+            "student_count": group_counts.get(g, 0),
+        }
+        for g in sorted_groups
+    ]
+    return {"classes": classes, "by_class": by_class}
+
+
+def get_teacher_tasks_from_csv() -> dict:
+    ind_meta: dict[str, dict] = {}
+    for row in read_csv_file(dataset_dir / "00_字典" / "指标字典.csv"):
+        iid = row.get("指标编号", "").strip()
+        if iid:
+            ind_meta[iid] = {
+                "indicator_name": row.get("指标名称", "").strip(),
+                "theme_id": row.get("主题编号", "").strip(),
+                "theme_name": row.get("主题名称", "").strip(),
+                "textbook_scope": row.get("教材范围", "").strip(),
+                "questions_in_bank": to_int(row.get("全库题数")),
+            }
+
+    raw_rows = []
+    for row in read_csv_file(dataset_dir / "02_按班级" / "班级_指标汇总.csv"):
+        raw_rows.append(
+            {
+                "group_name": row.get("群体", "").strip(),
+                "student_count": to_int(row.get("人数")),
+                "theme_id": row.get("主题", "").strip(),
+                "indicator_id": row.get("指标", "").strip(),
+                "indicator_name": row.get("指标名称", "").strip(),
+                "eligible_questions_total": to_int(row.get("可考题数合计")),
+                "done_questions_total": to_int(row.get("做过题数合计")),
+                "score": to_float(row.get("得分")),
+                "full_score": to_float(row.get("满分")),
+                "score_rate": to_float(row.get("得分率")),
+                "recorded_students": to_int(row.get("有记录人数")),
+            }
+        )
+    return _format_teacher_tasks_rows(raw_rows, ind_meta)
+
+
+async def get_teacher_tasks(db: AsyncSession) -> dict:
+    try:
+        ind_rows = (await db.execute(select(DictIndicator))).scalars().all()
+        ind_meta = {
+            r.indicator_id: {
+                "indicator_name": r.indicator_name,
+                "theme_id": r.theme_id,
+                "theme_name": r.theme_name,
+                "textbook_scope": r.textbook_scope or "",
+                "questions_in_bank": r.questions_in_bank,
+            }
+            for r in ind_rows
+        }
+        summary_rows = (
+            await db.execute(
+                select(ClassIndicatorSummary).order_by(
+                    ClassIndicatorSummary.group_name, ClassIndicatorSummary.indicator_id
+                )
+            )
+        ).scalars().all()
+        if not summary_rows:
+            return get_teacher_tasks_from_csv()
+
+        raw_rows = [
+            {
+                "group_name": r.group_name,
+                "student_count": r.student_count,
+                "theme_id": r.theme_id,
+                "indicator_id": r.indicator_id,
+                "indicator_name": r.indicator_name,
+                "eligible_questions_total": r.eligible_questions_total,
+                "done_questions_total": r.done_questions_total,
+                "score": r.score,
+                "full_score": r.full_score,
+                "score_rate": r.score_rate,
+                "recorded_students": r.recorded_students,
+            }
+            for r in summary_rows
+        ]
+        return _format_teacher_tasks_rows(raw_rows, ind_meta)
+    except Exception:
+        return get_teacher_tasks_from_csv()
+
+
+def _ensure_database_exists() -> None:
+    import pymysql
+
+    with pymysql.connect(
+        host=mysql_host,
+        port=mysql_port,
+        user=mysql_user,
+        password=raw_mysql_password,
+        charset="utf8mb4",
+        connect_timeout=2,
+    ) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"CREATE DATABASE IF NOT EXISTS `{mysql_database}` "
+                "DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+            )
+        conn.commit()
+
+
+# 自动建库 + 建表 + 同步 00-04 数据和学生账号
 async def init_db_and_sync() -> dict:
+    await asyncio.to_thread(_ensure_database_exists)
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     async with AsyncSessionLocal() as session:

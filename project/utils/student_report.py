@@ -19,6 +19,7 @@ from reportlab.pdfgen.canvas import Canvas
 
 from agent.core.student_agent import generate_student_report_advice
 from models.dataset import StudentProfile
+from utils.file_tools import to_float
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -52,11 +53,13 @@ def _register_font() -> None:
 
 
 def _number(value) -> str:
-    return "-" if value is None else f"{value:g}"
+    number = to_float(value)
+    return "-" if number is None else f"{number:g}"
 
 
 def _rate(value) -> str:
-    return "-" if value is None else f"{value:.1%}"
+    rate = to_float(value)
+    return "-" if rate is None else f"{rate:.1%}"
 
 
 def _wrapped_lines(text: str, width: float, size: int, limit: int) -> list[str]:
