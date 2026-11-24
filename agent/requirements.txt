@@ -1,0 +1,18 @@
+# ==============================================================================
+# Agent 智能体与 RAG 模块独立依赖清单
+# 单独测试方式（无需启动 FastAPI 后端）：
+#     cd agent
+#     pip install -r requirements.txt
+#     python rag/vector_store.py   # 仅测试 PDF 向量化入库
+#     python run_demo.py           # 测试向量化 + 学生/教师端对话（需已启动 MySQL 并配置 .env）
+# ==============================================================================
+
+langchain>=1.0.0
+langchain-core>=1.0.0
+langchain-community>=0.3.0
+langchain-text-splitters>=1.0.0
+langchain-chroma>=1.0.0
+dashscope>=1.20.0
+pypdf>=5.0.0
+PyMySQL>=1.1.0
+cryptography>=41.0.0

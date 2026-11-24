@@ -1,0 +1,37 @@
+# ==============================================================================
+# ZJHX--CUMTB 全项目统一 Python 依赖清单
+# 覆盖：project（FastAPI 后端）、agent（LangChain + RAG）、数据层、打印模块
+# 换电脑后只需在【同一个】Python 环境中执行一次：
+#     pip install -r requirements.txt
+# ==============================================================================
+
+# 1. FastAPI 后端与异步 MySQL ORM
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+SQLAlchemy>=2.0.0
+greenlet>=3.0.0
+aiomysql>=0.2.0
+PyMySQL>=1.1.0
+cryptography>=41.0.0
+pydantic>=2.7.0
+
+# 2. LangChain 智能体、通义千问与本地 Chroma 向量库
+langchain>=1.0.0
+langchain-core>=1.0.0
+langchain-community>=0.3.0
+langchain-text-splitters>=1.0.0
+langchain-chroma>=1.0.0
+dashscope>=1.20.0
+pypdf>=5.0.0
+
+# 3. 数据层清洗与构建管线
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# 4. 学情报告 PDF 生成与 Windows 静默打印
+reportlab>=4.4,<5
+PyJWT>=2.10,<3
+pypdfium2>=4.0
+Pillow>=10.0
+pywin32>=306; sys_platform == "win32"

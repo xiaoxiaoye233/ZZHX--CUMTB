@@ -20,3 +20,8 @@ Thumbs.db
 /printfiles/
 /project/.agent-print-settings.json
 /project/.agent-print-settings-*.tmp
+
+# Local environment config (contains API keys; copy .env.example to .env)
+.env
+.env.*
+!.env.example

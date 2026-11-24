@@ -1,0 +1,28 @@
+# ==============================================================================
+# FastAPI 后端模块依赖清单
+# 单独测试方式：
+#     cd project
+#     pip install -r requirements.txt
+#     python crud/teacher.py                        # 单独测试 MySQL 建表与 00-04 数据同步
+#     uvicorn main:app --reload --port 8000         # 启动完整后端接口服务
+# ==============================================================================
+
+# 1. FastAPI 核心与异步数据库 ORM
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+SQLAlchemy>=2.0.0
+greenlet>=3.0.0
+aiomysql>=0.2.0
+PyMySQL>=1.1.0
+cryptography>=41.0.0
+pydantic>=2.7.0
+
+# 2. 学情报告 PDF 排版与打印鉴权会话
+reportlab>=4.4,<5
+PyJWT>=2.10,<3
+
+# 3. 后端启动挂载的同级模块依赖（agent 路由、数据层脚本、静默打印）
+-r ../agent/requirements.txt
+-r ../数据层/requirements.txt
+-r ../打印模块/print_pdf/requirements.txt

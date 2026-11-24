@@ -32,7 +32,33 @@ except ImportError as exc:  # 依赖没装
     print("       请先执行：pip install -r requirements.txt")
     sys.exit(3)
 
-# 默认打印机：优先读环境变量 PRINTER_NAME，其次用下面这个名字
+# 默认打印机：优先读根目录 .env 或系统环境变量 PRINTER_NAME，其次用下面这个名字
+def _load_env_files(*env_paths: Path) -> None:
+    for env_path in env_paths:
+        if not env_path.is_file():
+            continue
+        for raw_line in env_path.read_text(encoding="utf-8-sig").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[7:].strip()
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key, value = key.strip(), value.strip()
+            if not key:
+                continue
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                value = value[1:-1]
+            elif " #" in value:
+                value = value.split(" #", 1)[0].strip()
+            if value:
+                os.environ[key] = value
+
+
+_HERE = Path(__file__).resolve().parent
+_load_env_files(_HERE.parents[1] / ".env", _HERE / ".env")
 DEFAULT_PRINTER = os.environ.get("PRINTER_NAME", "HP LaserJet Professional M1218nfs MFP")
 
 # 打印机常见状态位（不同驱动未必都支持，取不到的按 0 处理）

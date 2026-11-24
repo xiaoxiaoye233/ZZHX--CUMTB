@@ -1,0 +1,10 @@
+# ==============================================================================
+# 打印模块独立依赖清单
+# 单独测试方式：
+#     cd 打印模块/print_pdf
+#     pip install -r ../requirements.txt
+#     python print_pdf_file.py --list-printers
+#     python print_pdf_file.py test.pdf --dry
+# ==============================================================================
+
+-r print_pdf/requirements.txt
