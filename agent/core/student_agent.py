@@ -1,0 +1,115 @@
+"""
+学生端 LangChain 智能体模块：
+功能 1：generate_student_advice(student_id)
+    进入学生路由时，自动查数据库 -> 用 ChatPromptTemplate | ChatTongyi | StrOutputParser 生成个性化建议
+功能 2：student_chat(student_id, message)
+    学生多轮对话 -> 用 create_agent 结合「教材 RAG 检索工具 + 学生数据库工具 + 防御性提示词 + 本地 JSON 长期会话记忆」回答
+"""
+from langchain.agents import create_agent
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+
+from agent.config.settings import PROMPTS_DIR
+from agent.core.llm import get_chat_model
+from agent.memory.file_history import (
+    append_chat_messages,
+    invoke_with_history,
+    load_chat_history,
+    student_session_key,
+)
+from agent.tools.db_tools import (
+    get_student_summary_text,
+    query_student_scores,
+    query_student_wrong_questions,
+)
+from agent.tools.rag_tools import search_textbook_knowledge
+
+
+def load_prompt_text(filename: str) -> str:
+    """从 agent/prompts/ 文件夹读取提示词文本"""
+    return (PROMPTS_DIR / filename).read_text(encoding="utf-8")
+
+
+# ==================== 长期会话历史读写（供路由和老师查看复用） ====================
+def get_student_history(student_id: str) -> list[dict]:
+    """读取某位同学保存在本地 JSON 文件里的完整长期对话记录"""
+    session_key = student_session_key(student_id)
+    return load_chat_history(session_key)
+
+
+def save_student_opening_advice(student_id: str, advice: str) -> None:
+    """首次进入学生路由生成个性化建议后，把它存成长期会话的第一条记录"""
+    text = (advice or "").strip()
+    if not text:
+        return
+    session_key = student_session_key(student_id)
+    append_chat_messages(
+        session_key,
+        [
+            {
+                "role": "assistant",
+                "content": text,
+                "tag": "Agent 老师 · 个性化建议",
+            }
+        ],
+        only_if_empty=True,
+    )
+
+
+# ==================== 功能 1：进入学生路由自动生成个性化建议 ====================
+def _generate_advice(student_id: str, prompt_filename: str) -> str:
+    """把 MySQL 学情填入指定提示词，再用学生 Agent 的聊天模型生成建议。"""
+    sid = student_id.strip().upper()
+
+    # 1. 从 MySQL 查询这名同学的真实学情数据
+    student_data = get_student_summary_text(sid)
+
+    # 2. 读取提示词模板并组装最基础的 Chain
+    template_text = load_prompt_text(prompt_filename)
+    prompt = ChatPromptTemplate.from_template(template_text)
+    model = get_chat_model()
+    chain = prompt | model | StrOutputParser()
+
+    # 3. 执行 Chain 生成个性化建议
+    advice = chain.invoke(
+        {
+            "student_id": sid,
+            "student_data": student_data,
+        }
+    )
+    return advice.strip()
+
+
+def generate_student_advice(student_id: str) -> str:
+    return _generate_advice(student_id, "student_advice.txt")
+
+
+def generate_student_report_advice(student_id: str) -> str:
+    return _generate_advice(student_id, "student_report_advice.txt")
+
+
+# ==================== 功能 2：学生对话（教材 RAG + 数据库 + 防御性语言 + 长期会话记忆） ====================
+def student_chat(student_id: str, message: str) -> str:
+    """
+    经典 Agent 写法（P5 课程） + 长期会话记忆（P3 第 21 课）：
+    create_agent + 3 个工具（查本人成绩、查本人错题、检索教材 PDF）+ 防御性系统提示词 + 本地 JSON 持久化历史
+    """
+    sid = student_id.strip().upper()
+    user_text = message.strip()
+    session_key = student_session_key(sid)
+
+    # 1. 读取带防御性语言护栏的系统提示词，并填入当前学生的学号
+    system_prompt = load_prompt_text("student_chat.txt").replace("{student_id}", sid)
+
+    # 2. 创建学生答疑 Agent
+    agent = create_agent(
+        model=get_chat_model(),
+        tools=[
+            search_textbook_knowledge,
+            query_student_scores,
+            query_student_wrong_questions,
+        ],
+        system_prompt=system_prompt,
+    )
+
+    return invoke_with_history(agent, session_key, user_text, "Agent 老师")

@@ -1,10 +1,17 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+import sys
+
+# 把上层目录 D:\ZJHX--CUMTB 加入搜索路径，以便导入独立同级文件夹 agent
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from crud import teacher as teacher_crud
-from routers import student, teacher, users
+from routers import agent, student, teacher, users
 from utils.exception_handlers import register_exception_handlers
 
 
@@ -42,3 +49,4 @@ async def root():
 app.include_router(users.router)
 app.include_router(teacher.router)
 app.include_router(student.router)
+app.include_router(agent.router)

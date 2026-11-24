@@ -12,10 +12,10 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 from config.db_conf import (  # noqa: E402
-    ASYNC_DATABASE_URL,
+    async_database_url,
     AsyncSessionLocal,
-    DATASET_DIR,
-    STUDENTS_DATA_DIR,
+    dataset_dir,
+    students_data_dir,
     async_engine,
 )
 from crud import users as users_crud  # noqa: E402
@@ -68,7 +68,7 @@ async def sync_dataset_to_db(db: AsyncSession) -> dict:
     counts = {}
 
     # 2. 导入 00_字典
-    dir_00 = DATASET_DIR / "00_字典"
+    dir_00 = dataset_dir / "00_字典"
 
     rows = read_csv_file(dir_00 / "指标字典.csv")
     for r in rows:
@@ -139,8 +139,8 @@ async def sync_dataset_to_db(db: AsyncSession) -> dict:
     overview_count = 0
     record_count = 0
 
-    if STUDENTS_DATA_DIR.exists():
-        for folder in sorted(STUDENTS_DATA_DIR.iterdir()):
+    if students_data_dir.exists():
+        for folder in sorted(students_data_dir.iterdir()):
             if not folder.is_dir():
                 continue
             sid = folder.name
@@ -218,7 +218,7 @@ async def sync_dataset_to_db(db: AsyncSession) -> dict:
     counts["student_question_records"] = record_count
 
     # 4. 导入 02_按班级
-    dir_02 = DATASET_DIR / "02_按班级"
+    dir_02 = dataset_dir / "02_按班级"
 
     rows = read_csv_file(dir_02 / "班级总表.csv")
     for r in rows:
@@ -280,7 +280,7 @@ async def sync_dataset_to_db(db: AsyncSession) -> dict:
     counts["class_indicator_summary"] = len(rows)
 
     # 5. 导入 03_按主题
-    dir_03 = DATASET_DIR / "03_按主题"
+    dir_03 = dataset_dir / "03_按主题"
     theme_score_count = 0
     if dir_03.exists():
         for csv_file in sorted(dir_03.glob("*.csv")):
@@ -309,7 +309,7 @@ async def sync_dataset_to_db(db: AsyncSession) -> dict:
     counts["theme_student_scores"] = theme_score_count
 
     # 6. 导入 04_质量与剔除
-    dir_04 = DATASET_DIR / "04_质量与剔除"
+    dir_04 = dataset_dir / "04_质量与剔除"
 
     rows = read_csv_file(dir_04 / "判分存疑.csv")
     for r in rows:
@@ -398,7 +398,7 @@ def get_teacher_overview_from_csv() -> dict:
     themes = []
     student_theme_map = {}
 
-    dir_03 = DATASET_DIR / "03_按主题"
+    dir_03 = dataset_dir / "03_按主题"
     if dir_03.exists():
         for csv_file in sorted(dir_03.glob("*.csv")):
             parts = csv_file.stem.split("_", 1)
@@ -419,7 +419,7 @@ def get_teacher_overview_from_csv() -> dict:
 
     students = []
     class_members = {}
-    for r in read_csv_file(DATASET_DIR / "02_按班级" / "班级总表.csv"):
+    for r in read_csv_file(dataset_dir / "02_按班级" / "班级总表.csv"):
         sid = r["学生"].strip()
         cid = r["班级"].strip()
         total_score = to_float(r["得分"])
@@ -441,7 +441,7 @@ def get_teacher_overview_from_csv() -> dict:
         class_members.setdefault(cid, []).append(item)
 
     class_theme_map = {}
-    for r in read_csv_file(DATASET_DIR / "02_按班级" / "班级_主题汇总.csv"):
+    for r in read_csv_file(dataset_dir / "02_按班级" / "班级_主题汇总.csv"):
         group = r["群体"].strip()
         if group == "全年级":
             continue
@@ -579,7 +579,7 @@ async def init_db_and_sync() -> dict:
 
 
 if __name__ == "__main__":
-    print("连接数据库:", ASYNC_DATABASE_URL)
+    print("连接数据库:", async_database_url)
     summary = asyncio.run(init_db_and_sync())
     print("建库建表并导入 00-04 数据完成:")
     for table_name, count in summary.items():

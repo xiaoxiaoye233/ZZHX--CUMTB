@@ -10,10 +10,10 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', name: 'login', component: LoginView },
-    { path: '/teacher', name: 'teacher', component: TeacherView, meta: { role: 'teacher' } },
+    { path: '/teacher', name: 'teacher', component: TeacherView, meta: { role: 'teacher', fixedWorkspace: true } },
     { path: '/teacher/agent-config', name: 'agent-config', component: AgentConfigView, meta: { role: 'teacher' } },
     { path: '/teacher/data-analysis', name: 'data-analysis', component: DataAnalysisView, meta: { role: 'teacher' } },
-    { path: '/student/:id?', name: 'student', component: StudentView, meta: { role: 'student' } },
+    { path: '/student/:id?', name: 'student', component: StudentView, meta: { role: 'student', fixedWorkspace: true } },
   ],
 })
 

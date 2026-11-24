@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getStudentAdviceAPI } from '@/apis/agent'
+import { getStudentAdviceAPI, getStudentChatHistoryAPI } from '@/apis/agent'
 import { getStudentScoreTableAPI } from '@/apis/analysis'
 
 // 请求不到后端时的静态兜底数据（与 01_按学生/D01/D01_速览.csv 完全同构）
@@ -35,13 +35,6 @@ function roundNumber(value, digits = 1) {
   return Math.round(value * factor) / factor
 }
 
-function formatPercent(rate) {
-  if (rate === null || rate === undefined || !Number.isFinite(rate)) return '—'
-  const pct = rate * 100
-  return Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`
-}
-
-// 解析标准 CSV 文本（兼容 BOM、CRLF、双引号字段）
 function parseCSVText(csvText) {
   const clean = String(csvText || '').replace(/^\uFEFF/, '')
   const lines = []
@@ -315,62 +308,12 @@ function buildOverviewModel(rawRows, studentId) {
   }
 }
 
-function buildFallbackAdvice(model, stats) {
-  if (!model || !model.indicators.length) return ''
-
-  const { id, indicators } = model
-  const sufficientWeak = indicators
-    .filter((item) => item.hasRecord && item.tierKey === 'sufficient' && item.scoreRate < 0.6)
-    .sort((a, b) => a.scoreRate - b.scoreRate)
-  const missingOrLowEvidence = indicators.filter((item) => item.tierKey !== 'sufficient')
-
-  const lines = [
-    `你好（学号 ${id}），已根据你的各知识指标速览数据完成诊断：当前总得分 ${stats.totalScore}/${stats.totalFullScore} 分（总得分率 ${formatPercent(stats.overallRate)}），题目覆盖率 ${formatPercent(stats.overallCoverageRate)}。`,
-  ]
-
-  if (sufficientWeak.length) {
-    lines.push('')
-    lines.push('1. 优先突破（掌握度偏低的重点知识）：')
-    for (const item of sufficientWeak.slice(0, 3)) {
-      const rec = item.recommendedQuestions.length
-        ? `；可先练：${item.recommendedQuestions.slice(0, 3).join('、')}`
-        : ''
-      lines.push(
-        `• 【${item.themeName}】${item.indicatorName}（${item.score}/${item.fullScore} 分，得分率 ${formatPercent(item.scoreRate)}，教材 ${item.textbookRef || '对应章节'}）${rec}`,
-      )
-    }
-  }
-
-  if (missingOrLowEvidence.length) {
-    const unanswered = missingOrLowEvidence.filter((item) => !item.hasRecord)
-    const lowEvidence = missingOrLowEvidence.filter((item) => item.hasRecord)
-    lines.push('')
-    lines.push('2. 建议补做练习：')
-    if (unanswered.length) {
-      const first = unanswered[0]
-      const rec = first.recommendedQuestions.slice(0, 3).join('、')
-      lines.push(
-        `• 有 ${unanswered.length} 项知识点暂未作答（如「${first.themeName} · ${first.indicatorName}」），建议优先补做 ${rec || '基础练习题'}。`,
-      )
-    }
-    if (lowEvidence.length) {
-      const weakestLow = [...lowEvidence].sort((a, b) => a.scoreRate - b.scoreRate)[0]
-      lines.push(
-        `• 另有 ${lowEvidence.length} 项知识点练题偏少（如「${weakestLow.themeName} · ${weakestLow.indicatorName}」仅做 ${weakestLow.doneCount} 题，当前 ${weakestLow.score}/${weakestLow.fullScore} 分），建议各补 2–3 题巩固掌握。`,
-      )
-    }
-  }
-
-  lines.push('')
-  lines.push('3. 你可以直接点击左侧任意知识点查看推荐练习题，或在这里告诉我具体哪一题卡住了，我来逐步讲解。')
-  return lines.join('\n')
-}
-
 export const useStudentStore = defineStore('student', () => {
   const student = ref(null)
   const loading = ref(false)
   const adviceLoading = ref(false)
   const agentAdvice = ref('')
+  const chatHistory = ref([])
   let requestSeq = 0
 
   const indicators = computed(() => student.value?.indicators || [])
@@ -465,13 +408,14 @@ export const useStudentStore = defineStore('student', () => {
   })
 
   async function fetchStudentPageData(studentId = 'D01') {
-    const targetId = String(studentId || 'D01').trim() || 'D01'
+    const targetId = String(studentId || 'D01').trim().toUpperCase() || 'D01'
     const currentSeq = ++requestSeq
     loading.value = true
     adviceLoading.value = true
     agentAdvice.value = ''
+    chatHistory.value = []
 
-    // 1. 请求后端获取该学生的 msg（支持 CSV 字符串或行对象数组），失败则用静态 D01_速览 数据兜底
+    // 1. 请求后端获取该学生的速览数据，失败则用静态 D01_速览 数据兜底
     let resolvedRows = null
     try {
       const res = await getStudentScoreTableAPI(targetId)
@@ -486,26 +430,40 @@ export const useStudentStore = defineStore('student', () => {
     student.value = buildOverviewModel(rowsToUse, targetId)
     loading.value = false
 
-    // 2. 自动请求 Agent 生成个性化建议，失败则基于当前速览指标自动生成
-    let resolvedAdvice = ''
+    // 2. 先读取该学生的长期会话历史；如果已有历史记录，直接完整展示
     try {
-      const adviceRes = await getStudentAdviceAPI(targetId)
-      resolvedAdvice = extractAdviceText(adviceRes)
+      const historyRes = await getStudentChatHistoryAPI(targetId)
+      if (currentSeq !== requestSeq) return
+      const savedList = Array.isArray(historyRes?.data) ? historyRes.data : []
+      if (savedList.length > 0) {
+        chatHistory.value = savedList
+        adviceLoading.value = false
+        return
+      }
     } catch {
-      // 后端未就绪时静默回退本地生成的建议
+      // 后端未就绪或暂无记录时继续走下方生成个性化建议
     }
 
     if (currentSeq !== requestSeq) return
 
-    agentAdvice.value =
-      resolvedAdvice ||
-      buildFallbackAdvice(student.value, {
-        totalScore: totalScore.value,
-        totalFullScore: totalFullScore.value,
-        overallRate: overallRate.value,
-        overallCoverageRate: overallCoverageRate.value,
-      })
-    adviceLoading.value = false
+    // 3. 首次进入还没有历史记录：自动请求 Agent 生成个性化建议（后端会自动存成长期会话首条记录）
+    try {
+      const adviceRes = await getStudentAdviceAPI(targetId)
+      if (currentSeq !== requestSeq) return
+      const advice = extractAdviceText(adviceRes)
+      if (!advice) return
+      agentAdvice.value = advice
+      chatHistory.value = [
+        { role: 'assistant', tag: 'Agent 老师 · 个性化建议', content: advice },
+      ]
+    } catch {
+      if (currentSeq !== requestSeq) return
+      chatHistory.value = [
+        { role: 'assistant', tag: '系统提示', content: '暂时无法生成个性化建议，请稍后再试。' },
+      ]
+    } finally {
+      if (currentSeq === requestSeq) adviceLoading.value = false
+    }
   }
 
   return {
@@ -513,6 +471,7 @@ export const useStudentStore = defineStore('student', () => {
     loading,
     adviceLoading,
     agentAdvice,
+    chatHistory,
     indicators,
     themes,
     scoredIndicators,

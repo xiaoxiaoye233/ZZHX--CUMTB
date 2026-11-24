@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from config.db_conf import DATA_LAYER_ROOT, STEPS_DIR, UPLOAD_TARGET_DIR
+from config.db_conf import data_layer_root, steps_dir, upload_target_dir
 
 
 def to_int(value):
@@ -51,12 +51,12 @@ def save_uploaded_bytes(content: bytes, filename: str, target_name: str) -> Path
     - target_name: '模拟学生' 或 '作答记录'
     - 如果已有同名文件，先删除旧文件再保存；若浏览器正直接上传目标目录里的同一文件导致无法 unlink，则直接原地覆盖
     """
-    UPLOAD_TARGET_DIR.mkdir(parents=True, exist_ok=True)
+    upload_target_dir.mkdir(parents=True, exist_ok=True)
     ext = Path(filename or "").suffix.lower() or ".csv"
-    save_path = UPLOAD_TARGET_DIR / f"{target_name}{ext}"
+    save_path = upload_target_dir / f"{target_name}{ext}"
 
     # 1. 删除已有的同名文件（如 模拟学生.csv / 模拟学生.xlsx）
-    for old_file in UPLOAD_TARGET_DIR.glob(f"{target_name}.*"):
+    for old_file in upload_target_dir.glob(f"{target_name}.*"):
         if not old_file.is_file():
             continue
         try:
@@ -114,12 +114,12 @@ def run_steps_scripts() -> list[str]:
     python_exe = _pick_script_python()
     executed = []
 
-    for script in sorted(STEPS_DIR.glob("*.py")):
+    for script in sorted(steps_dir.glob("*.py")):
         if script.name.startswith("__"):
             continue
         result = subprocess.run(
             [python_exe, str(script)],
-            cwd=str(DATA_LAYER_ROOT),
+            cwd=str(data_layer_root),
             capture_output=True,
             text=True,
             encoding="utf-8",

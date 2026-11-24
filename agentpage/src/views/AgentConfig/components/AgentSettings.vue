@@ -1,9 +1,41 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { getAgentConfigAPI, updateAgentConfigAPI } from '@/apis/agent'
 
-const tone = ref('')
 const aiKey = ref('')
-const autoPrint = ref('')
+const autoPrint = ref(false)
+const loadingConfig = ref(true)
+const configLoaded = ref(false)
+const savingConfig = ref(false)
+const configMessage = ref('')
+
+onMounted(async () => {
+  try {
+    const result = await getAgentConfigAPI()
+    autoPrint.value = result.data.auto_print
+    configLoaded.value = true
+  } catch (error) {
+    configMessage.value = error.message || '无法读取自动打印设置'
+  } finally {
+    loadingConfig.value = false
+  }
+})
+
+async function saveAutoPrint(event) {
+  const selected = event.target.value === 'yes'
+  savingConfig.value = true
+  configMessage.value = ''
+  try {
+    const result = await updateAgentConfigAPI({ autoPrint: selected })
+    autoPrint.value = result.data.auto_print
+    configMessage.value = '自动打印设置已保存'
+  } catch (error) {
+    event.target.value = autoPrint.value ? 'yes' : 'no'
+    configMessage.value = error.message || '无法保存自动打印设置'
+  } finally {
+    savingConfig.value = false
+  }
+}
 </script>
 
 <template>
@@ -11,13 +43,6 @@ const autoPrint = ref('')
     <h1 id="config-title">Agent 配置</h1>
     <p class="description">设置学生端 Agent 的使用方式</p>
     <form @submit.prevent>
-      <label for="agent-tone">学生端 Agent 语气</label>
-      <select id="agent-tone" v-model="tone">
-        <option disabled value="">请选择语气</option>
-        <option value="gentle">温柔</option>
-        <option value="serious">严肃</option>
-        <option value="concise">言简意赅</option>
-      </select>
       <label for="ai-key">AI Key</label>
       <input
         id="ai-key"
@@ -27,11 +52,17 @@ const autoPrint = ref('')
         autocomplete="off"
       />
       <label for="auto-print">是否自动打印</label>
-      <select id="auto-print" v-model="autoPrint">
-        <option disabled value="">请选择</option>
+      <select
+        id="auto-print"
+        :value="configLoaded ? (autoPrint ? 'yes' : 'no') : ''"
+        :disabled="!configLoaded || savingConfig"
+        @change="saveAutoPrint"
+      >
+        <option disabled value="">{{ loadingConfig ? '正在读取设置' : '设置不可用' }}</option>
         <option value="yes">是</option>
         <option value="no">否</option>
       </select>
+      <p v-if="configMessage" class="config-message" role="status">{{ configMessage }}</p>
     </form>
   </section>
 </template>
@@ -78,6 +109,12 @@ select {
 select:focus {
   border-color: #7891ad;
   box-shadow: 0 0 0 3px rgba(80, 119, 159, .1);
+}
+
+.config-message {
+  margin: -12px 0 0;
+  color: #42566d;
+  font-size: 13px;
 }
 
 form > :last-child {

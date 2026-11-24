@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
+import { getTeacherChatHistoryAPI } from '@/apis/agent'
 import AgentChat from '@/components/AgentChat.vue'
 import { useTeacherStore } from '@/stores/teacherStore'
 import TeacherActions from './components/TeacherActions.vue'
@@ -11,14 +12,30 @@ defineOptions({ name: 'TeacherView' })
 const teacherStore = useTeacherStore()
 const { themes, students, loading } = storeToRefs(teacherStore)
 
+const teacherHistory = ref([])
+const historyLoading = ref(false)
+
+async function loadTeacherHistory() {
+  historyLoading.value = true
+  try {
+    const res = await getTeacherChatHistoryAPI('default')
+    teacherHistory.value = Array.isArray(res?.data) ? res.data : []
+  } catch {
+    teacherHistory.value = []
+  } finally {
+    historyLoading.value = false
+  }
+}
+
 onMounted(() => {
   teacherStore.fetchTeacherOverview()
+  loadTeacherHistory()
 })
 </script>
 
 <template>
   <main class="role-content split-layout">
-    <section class="left-pane">
+    <section class="left-pane" tabindex="0" aria-label="教师操作和成绩表">
       <TeacherActions />
       <section class="analysis-area" aria-labelledby="analysis-title">
         <div class="analysis-header">
@@ -40,8 +57,16 @@ onMounted(() => {
         class="teacher-chat"
         title="与 Agent 对话"
         title-id="teacher-chat-title"
+        subtitle="已开启长期会话记忆，可询问学生学情、班级薄弱项或课标授课建议"
         input-id="teacher-chat-input"
-        empty-text="开始与 Agent 对话"
+        placeholder="例如：DC02班哪个主题最薄弱？结合课标怎么讲？"
+        empty-text="输入关于学生、班级或课标授课的问题，开始对话"
+        conversation-key="teacher-default"
+        chat-role="teacher"
+        session-id="default"
+        :auto-messages="teacherHistory"
+        :loading="historyLoading"
+        loading-text="正在加载教师历史聊天记录..."
       />
     </section>
   </main>
@@ -49,25 +74,28 @@ onMounted(() => {
 
 <style scoped>
 .role-content {
-  padding-top: 28px;
+  padding-block: 28px;
 }
 
 .split-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-height: max(600px, calc(100vh - 200px));
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .left-pane {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding-right: 20px;
 }
 
 .right-pane {
   display: flex;
   min-width: 0;
+  min-height: 0;
   padding-left: 20px;
   border-left: 1px dashed #c9c3b8;
 }
@@ -108,11 +136,15 @@ onMounted(() => {
 
 @media (max-width: 700px) {
   .split-layout {
-    grid-template-columns: 1fr;
-    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: max-content clamp(320px, 70vh, 540px);
+    grid-template-rows: max-content clamp(320px, 70dvh, 540px);
+    align-content: start;
+    overflow: auto;
   }
 
   .left-pane {
+    overflow: visible;
     padding-right: 0;
     padding-bottom: 28px;
   }

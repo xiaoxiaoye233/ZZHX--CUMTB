@@ -1,4 +1,5 @@
 <script setup>
+import { nextTick, ref, watch } from 'vue'
 import { useChat } from '@/composables/useChat'
 
 const props = defineProps({
@@ -11,12 +12,26 @@ const props = defineProps({
   placeholder: { type: String, default: '输入消息...' },
   disabled: Boolean,
   conversationKey: { type: String, default: '' },
+  chatRole: { type: String, default: '' },
+  studentId: { type: String, default: '' },
+  sessionId: { type: String, default: 'default' },
   autoMessages: { type: Array, default: () => [] },
   loading: Boolean,
   loadingText: { type: String, default: 'Agent 正在生成个性化建议...' },
 })
 
-const { messageInput, messages, canSend, sendMessage } = useChat(props)
+const { messageInput, messages, sending, canSend, sendMessage } = useChat(props)
+const messagesRef = ref(null)
+
+watch(
+  () => [messages.value.length, sending.value],
+  async () => {
+    await nextTick()
+    if (messagesRef.value) {
+      messagesRef.value.scrollTop = messagesRef.value.scrollHeight
+    }
+  },
+)
 </script>
 
 <template>
@@ -25,10 +40,17 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
       <h2 :id="titleId">{{ title }}</h2>
       <p v-if="subtitle">{{ subtitle }}</p>
     </div>
-    <div class="messages" role="log" aria-live="polite">
+    <div
+      ref="messagesRef"
+      class="messages"
+      role="log"
+      aria-live="polite"
+      :aria-labelledby="titleId"
+      tabindex="0"
+    >
       <div v-if="loading && !messages.length" class="message-row is-agent">
         <div class="message-bubble agent-bubble loading-bubble">
-          <span class="agent-tag">Agent 老师</span>
+          <span class="agent-tag">{{ chatRole === 'teacher' ? 'AI 教研助手' : 'Agent 老师' }}</span>
           <p class="bubble-text">{{ loadingText }}</p>
         </div>
       </div>
@@ -49,6 +71,12 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
           <div class="bubble-text">{{ message.text }}</div>
         </div>
       </div>
+      <div v-if="sending" class="message-row is-agent">
+        <div class="message-bubble agent-bubble loading-bubble">
+          <span class="agent-tag">{{ chatRole === 'teacher' ? 'AI 教研助手' : 'Agent 老师' }}</span>
+          <p class="bubble-text">正在查阅资料并思考中...</p>
+        </div>
+      </div>
     </div>
     <form class="composer" @submit.prevent="sendMessage">
       <label class="visually-hidden" :for="inputId">{{ inputLabel }}</label>
@@ -57,9 +85,9 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
         v-model="messageInput"
         type="text"
         :placeholder="placeholder"
-        :disabled="disabled"
+        :disabled="disabled || sending"
       />
-      <button type="submit" :disabled="!canSend">发送</button>
+      <button type="submit" :disabled="!canSend">{{ sending ? '思考中' : '发送' }}</button>
     </form>
   </section>
 </template>
@@ -73,6 +101,11 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
   border-radius: 18px;
   background: #fffefa;
   box-shadow: 0 12px 40px rgba(84, 73, 56, .055);
+}
+
+.chat-header,
+.composer {
+  flex-shrink: 0;
 }
 
 .chat-header {
@@ -90,7 +123,15 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #cfc6b8 #f7f3eb;
   padding: 20px 22px;
+}
+
+.messages:focus-visible {
+  outline: 2px solid #7891ad;
+  outline-offset: -2px;
 }
 
 .empty-chat {
@@ -159,6 +200,7 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
 }
 
 .composer {
+  position: relative;
   display: flex;
   gap: 10px;
   padding: 16px;
@@ -213,15 +255,11 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
   white-space: nowrap;
 }
 
-.teacher-chat {
-  width: 100%;
-  min-height: 420px;
-  margin-top: 0;
-}
-
+.teacher-chat,
 .student-chat {
   width: 100%;
-  min-height: 600px;
+  height: 100%;
+  min-height: 0;
   margin-top: 0;
 }
 
@@ -241,13 +279,7 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
   line-height: 1.55;
 }
 
-.student-chat .messages {
-  min-height: 360px;
-  padding: 20px 22px;
-}
-
 .student-chat .empty-chat {
-  margin: 100px 0 1em;
   font-size: 14px;
 }
 
@@ -267,18 +299,6 @@ const { messageInput, messages, canSend, sendMessage } = useChat(props)
 }
 
 @media (max-width: 700px) {
-  .teacher-chat {
-    height: 520px;
-  }
-
-  .student-chat {
-    min-height: 480px;
-  }
-
-  .student-chat .messages {
-    min-height: 260px;
-  }
-
   .config-chat {
     min-height: 420px;
   }

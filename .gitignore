@@ -15,3 +15,8 @@ node_modules/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Generated student reports and local printer settings
+/printfiles/
+/project/.agent-print-settings.json
+/project/.agent-print-settings-*.tmp

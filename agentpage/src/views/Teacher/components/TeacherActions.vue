@@ -108,8 +108,8 @@ async function onFileChange(event) {
       hidden
       @change="onFileChange"
     />
-    <RouterLink class="config-link" to="/teacher/agent-config">设置 Agent 配置</RouterLink>
     <RouterLink class="config-link" to="/teacher/data-analysis">查看数据详情</RouterLink>
+    <RouterLink class="config-link" to="/teacher/agent-config">Agent 配置</RouterLink>
 
     <div class="upload-guide" :class="`tone-${notice ? noticeTone : 'info'}`" role="status">
       <span class="step-badge">步骤 {{ uploadStep }}/2</span>

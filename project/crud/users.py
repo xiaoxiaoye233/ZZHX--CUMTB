@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config.db_conf import STUDENTS_DATA_DIR
+from config.db_conf import students_data_dir
 from models.users import User
 
 
@@ -35,8 +35,8 @@ async def sync_users_from_folders(db: AsyncSession):
         existing_accounts.add("123")
 
     # 扫描 01_按学生 目录下的每个文件夹，文件夹名就是学生账号和密码（如 D01 / D01）
-    if STUDENTS_DATA_DIR.exists():
-        for folder in sorted(STUDENTS_DATA_DIR.iterdir()):
+    if students_data_dir.exists():
+        for folder in sorted(students_data_dir.iterdir()):
             if not folder.is_dir():
                 continue
             sid = folder.name
