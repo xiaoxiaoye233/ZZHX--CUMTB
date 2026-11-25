@@ -10,7 +10,6 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import StrictBool
 from starlette import status
 
 # 确保能导入同级的独立 agent 文件夹
@@ -33,7 +32,6 @@ from utils.knowledge_graph import (
     save_knowledge_graph,
 )
 from utils.print_access import require_teacher
-from utils.print_settings import auto_print_enabled, save_auto_print
 from utils.response import success_response
 
 # 创建 APIRouter 实例
@@ -42,22 +40,6 @@ router = APIRouter(prefix="/api/agent", tags=["agent"])
 
 def _ai_key_configured() -> bool:
     return bool(os.environ.get("DASHSCOPE_API_KEY", "").strip())
-
-
-@router.get("/config")
-def get_agent_config(request: Request):
-    require_teacher(request)
-    return success_response(
-        message="获取 Agent 配置成功",
-        data={"auto_print": auto_print_enabled(), "ai_key_configured": _ai_key_configured()},
-    )
-
-
-@router.patch("/config")
-def update_agent_config(request: Request, auto_print: Annotated[StrictBool, Body(embed=True)]):
-    require_teacher(request)
-    save_auto_print(auto_print)
-    return success_response(message="自动打印设置已保存", data={"auto_print": auto_print})
 
 
 @router.post("/chat")

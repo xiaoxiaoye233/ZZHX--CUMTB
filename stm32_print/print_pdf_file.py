@@ -1,0 +1,230 @@
+"""把任意 PDF 静默打印到指定打印机（Windows / GDI 独立内置版）。
+
+路径：PDF 文件 → PDFium 渲染成位图 → GDI 画到打印机画布 → 驱动转成打印机指令。
+不依赖外部 PDF 阅读器，不弹任何窗口。
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import time
+from pathlib import Path
+
+try:
+    import win32con
+    import win32print
+    import win32ui
+    from PIL import ImageWin
+except ImportError as exc:
+    print(f"[失败] 缺少打印依赖：{exc}")
+    print("       请先执行：pip install -r requirements.txt")
+    sys.exit(3)
+
+
+def _load_env_files(*env_paths: Path) -> None:
+    for env_path in env_paths:
+        if not env_path.is_file():
+            continue
+        for raw_line in env_path.read_text(encoding="utf-8-sig").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("export "):
+                line = line[7:].strip()
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key, value = key.strip(), value.strip()
+            if not key:
+                continue
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                value = value[1:-1]
+            elif " #" in value:
+                value = value.split(" #", 1)[0].strip()
+            if value:
+                os.environ[key] = value
+
+
+_HERE = Path(__file__).resolve().parent
+_load_env_files(_HERE.parent / ".env", _HERE / ".env")
+DEFAULT_PRINTER = os.environ.get("PRINTER_NAME", "")
+
+STATUS_TEXT = {
+    0x00000001: "暂停",
+    0x00000002: "错误",
+    0x00000008: "卡纸",
+    0x00000010: "缺纸",
+    0x00000020: "手动进纸",
+    0x00000080: "离线",
+    0x00040000: "门未关",
+    0x000400: "缺墨粉",
+}
+
+
+def list_printers() -> list[str]:
+    flags = win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+    try:
+        return [d["pPrinterName"] for d in win32print.EnumPrinters(flags, None, 2)]
+    except (KeyError, TypeError):
+        return [p[2] for p in win32print.EnumPrinters(flags, None, 1)]
+
+
+def resolve_default_printer(preferred: str) -> str:
+    if preferred.strip():
+        return preferred.strip()
+    try:
+        return win32print.GetDefaultPrinter()
+    except Exception:
+        printers = list_printers()
+        return printers[0] if printers else ""
+
+
+def describe_status(name: str) -> list[str]:
+    try:
+        h = win32print.OpenPrinter(name)
+        try:
+            info = win32print.GetPrinter(h, 2)
+        finally:
+            win32print.ClosePrinter(h)
+    except Exception:
+        return []
+    status = info.get("Status", 0)
+    return [text for bit, text in STATUS_TEXT.items() if status & bit]
+
+
+def check_pdf(path: Path) -> int:
+    if not path.exists():
+        raise SystemExit(f"[失败] 找不到文件：{path}")
+    with path.open("rb") as fh:
+        if fh.read(5) != b"%PDF-":
+            raise SystemExit(f"[失败] 这不是 PDF 文件：{path}")
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument(str(path))
+    try:
+        return len(doc)
+    finally:
+        doc.close()
+
+
+def render_pages(path: Path, dpi: int, pages: list[int] | None):
+    import pypdfium2 as pdfium
+
+    doc = pdfium.PdfDocument(str(path))
+    try:
+        total = len(doc)
+        wanted = pages if pages else list(range(total))
+        for i in wanted:
+            if not 0 <= i < total:
+                continue
+            img = doc[i].render(scale=dpi / 72).to_pil()
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            yield i, img
+    finally:
+        doc.close()
+
+
+def fit_box(img_w: int, img_h: int, box_w: int, box_h: int) -> tuple[int, int, int, int]:
+    scale = min(box_w / img_w, box_h / img_h)
+    w, h = int(img_w * scale), int(img_h * scale)
+    return (box_w - w) // 2, (box_h - h) // 2, w, h
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="把 PDF 静默打印到打印机")
+    ap.add_argument("pdf", nargs="?", help="PDF 文件路径")
+    ap.add_argument("--printer", default=DEFAULT_PRINTER, help="打印机名字（留空自动使用系统默认打印机）")
+    ap.add_argument("--dpi", type=int, default=300, help="渲染精度（默认 300）")
+    ap.add_argument("--pages", default="", help="只打某几页，例如 1 或 1,3")
+    ap.add_argument("--copies", type=int, default=1, help="打印份数")
+    ap.add_argument("--margin", type=float, default=0.0, help="四周留白毫米数")
+    ap.add_argument("--dry", action="store_true", help="只渲染校验，不实际出纸")
+    ap.add_argument("--list-printers", action="store_true", help="列出系统里的打印机")
+    a = ap.parse_args()
+
+    if a.list_printers:
+        for n in list_printers():
+            print(n)
+        return 0
+
+    if not a.pdf:
+        print("[失败] 未提供 PDF 路径。")
+        return 2
+
+    pdf_path = Path(a.pdf)
+    total = check_pdf(pdf_path)
+    pages = [int(x) - 1 for x in a.pages.split(",") if x.strip()] if a.pages else None
+
+    if a.dry:
+        print(f"[信息] 文件 {pdf_path.name}，共 {total} 页，渲染 {a.dpi}dpi")
+        for i, img in render_pages(pdf_path, a.dpi, pages):
+            print(f"  第 {i + 1} 页 → {img.size[0]}x{img.size[1]} px")
+        return 0
+
+    printer_name = resolve_default_printer(a.printer)
+    available = list_printers()
+    if not printer_name or printer_name not in available:
+        print(f"[失败] 系统里找不到打印机：{printer_name or '(未指定)'}")
+        print("       当前可用打印机：")
+        for n in available:
+            print("   ", n)
+        return 1
+
+    warnings = describe_status(printer_name)
+    if warnings:
+        print(f"[注意] 打印机当前状态：{'、'.join(warnings)}（仍尝试提交）")
+
+    try:
+        dc = win32ui.CreateDC()
+        dc.CreatePrinterDC(printer_name)
+    except Exception as exc:
+        print(f"[失败] 打开打印机失败：{exc}")
+        return 1
+
+    box_w = dc.GetDeviceCaps(win32con.HORZRES)
+    box_h = dc.GetDeviceCaps(win32con.VERTRES)
+    if a.margin > 0:
+        dpi = dc.GetDeviceCaps(win32con.LOGPIXELSX)
+        cut = int(a.margin / 25.4 * dpi)
+        box_w -= 2 * cut
+        box_h -= 2 * cut
+        offset = cut
+    else:
+        offset = 0
+
+    print(f"[信息] 打印机 {printer_name}，共 {total} 页 x {a.copies} 份")
+    started = time.time()
+    dc.StartDoc(pdf_path.name)
+    drawn = 0
+    try:
+        for _ in range(max(1, a.copies)):
+            for i, img in render_pages(pdf_path, a.dpi, pages):
+                dc.StartPage()
+                x, y, w, h = fit_box(img.size[0], img.size[1], box_w, box_h)
+                ImageWin.Dib(img).draw(dc.GetSafeHdc(), (x + offset, y + offset, w, h))
+                dc.EndPage()
+                drawn += 1
+                print(f"[打印] 第 {i + 1} 页")
+    except Exception as exc:
+        print(f"[失败] 渲染或送纸出错：{exc}")
+        try:
+            dc.AbortDoc()
+        except Exception:
+            pass
+        dc.DeleteDC()
+        return 1
+    finally:
+        try:
+            dc.EndDoc()
+        except Exception:
+            pass
+
+    dc.DeleteDC()
+    print(f"[完成] 已提交 {drawn} 页，用时 {time.time() - started:.1f} 秒。")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

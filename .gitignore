@@ -16,10 +16,9 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Generated student reports and local printer settings
+# Generated student reports and local runtime state
 /printfiles/
-/project/.agent-print-settings.json
-/project/.agent-print-settings-*.tmp
+/stm32_print/downloads/
 /project/.knowledge-graph.json
 /project/.knowledge-graph-*.tmp
 /project/.report-advice-cache.json

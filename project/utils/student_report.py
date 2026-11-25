@@ -7,11 +7,7 @@ import logging
 import os
 from pathlib import Path
 import re
-import subprocess
-import sys
-from tempfile import NamedTemporaryFile
 from threading import Lock
-from uuid import UUID
 
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
@@ -26,10 +22,7 @@ from utils.file_tools import read_json_file, to_float, to_int
 from utils.knowledge_graph import load_knowledge_graph
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-REPORT_DIR = REPO_ROOT / "printfiles"
 ADVICE_CACHE_FILE = Path(__file__).resolve().parents[1] / ".report-advice-cache.json"
-PRINT_SCRIPT = REPO_ROOT / "打印模块" / "print_pdf" / "print_pdf_file.py"
 FONT_NAME = "StudentReportChinese"
 _FONT_LOCK = Lock()
 _CACHE_LOCK = Lock()
@@ -689,64 +682,3 @@ def render_student_report(
     )
     pdf = Canvas(str(path), pagesize=A4)
     _draw_report_to_canvas(pdf, payload)
-
-
-def _submit_to_printer(pdf_path: Path) -> None:
-    subprocess.run(
-        [sys.executable, str(PRINT_SCRIPT), str(pdf_path), "--copies", "1"],
-        cwd=PRINT_SCRIPT.parent,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        encoding="utf-8",
-        errors="replace",
-        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
-        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        timeout=90,
-    )
-
-
-def generate_and_print_report(
-    student_id: str,
-    visit_id: UUID,
-    profile: StudentProfile | None,
-    rows: list[dict],
-) -> dict:
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    safe_student_id = re.sub(r"[^a-zA-Z0-9_-]", "_", student_id)[:64]
-    pdf_path = REPORT_DIR / f"学情报告_{safe_student_id}_{visit_id.hex}.pdf"
-    claim_path = pdf_path.with_suffix(".lock")
-    try:
-        claim_path.touch(exist_ok=False)
-    except FileExistsError:
-        return {"status": "in_progress", "filename": pdf_path.name}
-
-    temporary_path = None
-    try:
-        if pdf_path.is_file():
-            return {"status": "already_generated", "filename": pdf_path.name}
-
-        base_payload = _normalize_report_payload(student_id, profile, rows, "")
-        advice = resolve_student_report_advice(student_id, base_payload)
-        base_payload["advice"] = advice
-
-        with NamedTemporaryFile(dir=REPORT_DIR, suffix=".tmp", delete=False) as temporary_file:
-            temporary_path = Path(temporary_file.name)
-        pdf = Canvas(str(temporary_path), pagesize=A4)
-        _draw_report_to_canvas(pdf, base_payload)
-        temporary_path.replace(pdf_path)
-
-        try:
-            _submit_to_printer(pdf_path)
-        except (OSError, subprocess.SubprocessError) as exc:
-            logger.error(
-                "学情报告已保存，打印脚本提交失败。%s %s",
-                pdf_path.name,
-                getattr(exc, "stdout", None) or exc,
-            )
-            return {"status": "print_failed", "filename": pdf_path.name}
-        return {"status": "submitted", "filename": pdf_path.name}
-    finally:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
-        claim_path.unlink(missing_ok=True)

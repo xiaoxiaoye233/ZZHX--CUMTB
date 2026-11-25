@@ -1,0 +1,21 @@
+{
+  "serial_port": "AUTO",
+  "baudrate": 115200,
+  "backend_url": "http://127.0.0.1:8000",
+  "printer_name": "",
+  "include_advice": true,
+  "dry_run": false,
+  "cooldown_seconds": 10,
+  "allow_direct_student_id": true,
+  "id_to_student": {
+    "1": "D01",
+    "2": "D02",
+    "3": "D03",
+    "4": "D04",
+    "5": "D05",
+    "01": "D01",
+    "02": "D02",
+    "CARD_001": "D01",
+    "CARD_002": "D14"
+  }
+}

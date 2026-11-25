@@ -31,21 +31,12 @@ const initialMessages = computed(() => {
   return [...chatHistory.value, advice]
 })
 
-const printMessages = {
-  submitted: '学情报告已提交打印',
-  print_failed: '学情报告已保存',
-  already_generated: '学情报告已就绪',
-  in_progress: '学情报告生成中',
-  advice_failed: '报告建议生成失败',
-}
-
 const statusHint = computed(() => {
   const login = currentLogin.value
   if (!login) return ''
-  const adviceStatus = login.adviceLoading
-    ? '个性化建议生成中'
-    : login.adviceFailed ? '暂时无法生成个性化建议' : ''
-  return [adviceStatus, printMessages[login.printStatus]].filter(Boolean).join(' · ')
+  if (login.adviceLoading) return '个性化建议生成中'
+  if (login.adviceFailed) return '暂时无法生成个性化建议'
+  return ''
 })
 
 watch(currentStudentId, (studentId) => studentStore.fetchStudentPageData(studentId), { immediate: true })

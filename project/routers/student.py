@@ -1,7 +1,6 @@
 import asyncio
 from pathlib import Path
 import sys
-from types import SimpleNamespace
 from typing import Annotated
 from urllib.parse import quote
 from uuid import UUID
@@ -9,7 +8,6 @@ from weakref import WeakValueDictionary
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import Response
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -23,15 +21,11 @@ from agent.core.student_agent import (
     get_student_history,
     save_student_login_advice,
 )
-from config.db_conf import get_db, students_data_dir
+from config.db_conf import get_db
 from crud import student
-from models.dataset import StudentProfile
-from utils.file_tools import read_json_file
 from utils.print_access import require_student_login
-from utils.print_settings import auto_print_enabled
 from utils.response import success_response
 from utils.student_report import (
-    generate_and_print_report,
     render_student_report_bytes,
     resolve_student_report_advice,
 )
@@ -39,36 +33,6 @@ from utils.student_report import (
 # 创建 APIRouter 实例
 router = APIRouter(prefix="/api/students", tags=["student"])
 _login_advice_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
-
-
-@router.post("/{student_id}/print-report")
-async def print_student_report(
-    student_id: str,
-    visit_id: Annotated[UUID, Body(embed=True)],
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    if not auto_print_enabled():
-        return success_response(message="自动打印已关闭", data={"status": "disabled"})
-
-    sid = student_id.strip().upper()
-    require_student_login(request, sid, visit_id)
-    rows = await student.get_student_overview_rows(db, sid)
-    if not rows:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"未找到学号 {sid} 的数据")
-
-    profile = None
-    try:
-        profile = await db.scalar(select(StudentProfile).where(StudentProfile.student_id == sid))
-    except Exception:
-        if db.in_transaction():
-            await db.rollback()
-        student_json = read_json_file(students_data_dir / sid / f"{sid}.json")
-        if isinstance(student_json, dict) and isinstance(student_json.get("student"), dict):
-            profile = SimpleNamespace(**student_json["student"])
-
-    result = await asyncio.to_thread(generate_and_print_report, sid, visit_id, profile, rows)
-    return success_response(message="学情报告处理完成", data=result)
 
 
 @router.get("/{student_id}/score-table")

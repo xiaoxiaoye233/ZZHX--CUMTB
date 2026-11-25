@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref } from 'vue'
-import { getStudentChatHistoryAPI, requestStudentLoginAdviceAPI, requestStudentReportPrintAPI } from '@/apis/agent'
+import { getStudentChatHistoryAPI, requestStudentLoginAdviceAPI } from '@/apis/agent'
 import { getStudentScoreTableAPI } from '@/apis/analysis'
 
 // 请求不到后端时的静态兜底数据（与 01_按学生/D01/D01_速览.csv 完全同构）
@@ -390,7 +390,6 @@ export const useStudentStore = defineStore('student', () => {
       advice: null,
       adviceLoading: true,
       adviceFailed: false,
-      printStatus: 'in_progress',
     })
     loginResult.value = result
 
@@ -403,14 +402,6 @@ export const useStudentStore = defineStore('student', () => {
       })
       .finally(() => {
         result.adviceLoading = false
-      })
-
-    requestStudentReportPrintAPI(result.studentId, loginId)
-      .then(({ data }) => {
-        result.printStatus = data?.status || ''
-      })
-      .catch(() => {
-        result.printStatus = ''
       })
   }
 

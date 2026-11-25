@@ -1,9 +1,8 @@
 <script setup>
 import {
-   computed,
+  computed,
   defineAsyncComponent,
   nextTick,
-  onMounted,
   ref,
   toRef,
   watch,
@@ -21,12 +20,10 @@ import {
   Network,
   PanelLeft,
   PanelRight,
-  Printer,
   SquarePen,
   Upload,
   User,
 } from 'lucide-vue-next'
-import { getAgentConfigAPI, updateAgentConfigAPI } from '@/apis/agent'
 import { uploadTeacherDataFileAPI } from '@/apis/uploads'
 import StudentReportPanel from '@/components/StudentReportPanel.vue'
 import StudentTasksPanel from '@/components/StudentTasksPanel.vue'
@@ -60,57 +57,6 @@ const reportCardResetSeq = ref(0)
 const historySidebarOpen = ref(true)
 const messagesStreamRef = ref(null)
 const composerInputRef = ref(null)
-
-// 教师端「个人详情」里的自动打印滑动开关状态
-const autoPrint = ref(localStorage.getItem('zjhx-auto-print') === 'true')
-const savingAutoPrint = ref(false)
-const autoPrintNotice = ref('')
-
-async function syncAutoPrintFromServer() {
-  if (props.role !== 'teacher') return
-  try {
-    const res = await getAgentConfigAPI()
-    if (typeof res?.data?.auto_print === 'boolean') {
-      autoPrint.value = res.data.auto_print
-      localStorage.setItem('zjhx-auto-print', String(autoPrint.value))
-    }
-  } catch {
-    // 后端未启动或未建立打印会话时沿用本地开关状态
-  }
-}
-
-async function toggleAutoPrint() {
-  if (props.role !== 'teacher' || savingAutoPrint.value) return
-  const previous = autoPrint.value
-  const nextVal = !previous
-  autoPrint.value = nextVal
-  localStorage.setItem('zjhx-auto-print', String(nextVal))
-  savingAutoPrint.value = true
-  autoPrintNotice.value = ''
-
-  try {
-    const res = await updateAgentConfigAPI({ autoPrint: nextVal })
-    if (typeof res?.data?.auto_print === 'boolean') {
-      autoPrint.value = res.data.auto_print
-      localStorage.setItem('zjhx-auto-print', String(autoPrint.value))
-    }
-    autoPrintNotice.value = autoPrint.value ? '已开启自动打印' : '已关闭自动打印'
-  } catch (err) {
-    if (err?.status === 401 || err?.status === 403) {
-      autoPrint.value = previous
-      localStorage.setItem('zjhx-auto-print', String(previous))
-      autoPrintNotice.value = err.message || '请重新登录教师账号后再修改打印开关'
-    } else {
-      autoPrintNotice.value = nextVal ? '已开启自动打印（本地预览）' : '已关闭自动打印（本地预览）'
-    }
-  } finally {
-    savingAutoPrint.value = false
-  }
-}
-
-onMounted(() => {
-  syncAutoPrintFromServer()
-})
 
 const uploadInput = ref(null)
 const uploadStorageKey = `zjhx-teacher-upload-step:${userStore.account}`
@@ -215,9 +161,6 @@ function handleNavClick(key) {
     reportCardResetSeq.value += 1
   }
   activeSection.value = key
-  if (key === 'profile' && props.role === 'teacher') {
-    syncAutoPrintFromServer()
-  }
 }
 
 function handleNewChat() {
@@ -514,38 +457,17 @@ watch(
                 >
                   <Upload :size="17" :stroke-width="1.8" aria-hidden="true" />
                 </button>
-                <input
-                  ref="uploadInput"
-                  type="file"
-                  accept=".csv,text/csv"
-                  hidden
-                  @change="uploadTeacherFile"
-                />
+                  <input
+                    ref="uploadInput"
+                    type="file"
+                    accept=".csv,text/csv"
+                    hidden
+                    @change="uploadTeacherFile"
+                  />
+                </div>
               </div>
-              <div v-if="role === 'teacher'" class="meta-row switch-row">
-                <span class="switch-label">
-                  <Printer :size="15" color="#ffffff" :stroke-width="1.85" />
-                  <span>是否自动打印</span>
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  class="print-switch"
-                  :class="{ 'is-on': autoPrint }"
-                  :aria-checked="autoPrint"
-                  :disabled="savingAutoPrint"
-                  aria-label="是否自动打印"
-                  @click="toggleAutoPrint"
-                >
-                  <span class="switch-thumb" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-            <p v-if="role === 'teacher' && autoPrintNotice" class="print-notice" role="status">
-              {{ autoPrintNotice }}
-            </p>
-            <p
-              v-if="role === 'teacher' && uploadNotice"
+              <p
+                v-if="role === 'teacher' && uploadNotice"
               class="upload-notice"
               :class="{ 'upload-error': uploadError }"
               role="status"
@@ -1092,50 +1014,6 @@ watch(
   font-weight: 500;
 }
 
-.print-switch {
-  position: relative;
-  width: 46px;
-  height: 26px;
-  padding: 3px;
-  border: 1px solid #3f3f46;
-  border-radius: 999px;
-  background: #2c2c30;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: background-color 0.24s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.24s ease;
-}
-
-.print-switch:hover:not(:disabled) {
-  border-color: #52525b;
-}
-
-.print-switch.is-on {
-  background: #22c55e;
-  border-color: #16a34a;
-}
-
-.print-switch:disabled {
-  opacity: 0.65;
-  cursor: wait;
-}
-
-.switch-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.36);
-  transform: translateX(0);
-  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.print-switch.is-on .switch-thumb {
-  transform: translateX(20px);
-}
-
 .teacher-upload-btn {
   display: grid;
   place-items: center;
@@ -1167,12 +1045,6 @@ watch(
 
 .placeholder-card .upload-notice.upload-error {
   color: #fca5a5;
-}
-
-.print-notice {
-  margin: -2px 0 0;
-  color: #4ade80 !important;
-  font-size: 12px !important;
 }
 
 .logout-btn {

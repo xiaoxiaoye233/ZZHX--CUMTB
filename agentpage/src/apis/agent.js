@@ -31,29 +31,6 @@ export const getTeacherChatHistoryAPI = (sessionId = 'default') => {
   })
 }
 
-// 读取和保存后端的自动打印开关
-export const getAgentConfigAPI = () => {
-  return request({ url: '/api/agent/config' })
-}
-
-export const updateAgentConfigAPI = ({ autoPrint }) => {
-  return request({
-    url: '/api/agent/config',
-    method: 'PATCH',
-    data: { auto_print: autoPrint },
-  })
-}
-
-// 学生登录成功后申请生成并打印本次学情报告
-export const requestStudentReportPrintAPI = (studentId, visitId) => {
-  return request({
-    url: `/api/students/${encodeURIComponent(studentId)}/print-report`,
-    method: 'POST',
-    data: { visit_id: visitId },
-    keepalive: true,
-  })
-}
-
 // 获取教师上传的教材 PDF 列表（师生共用）
 export const getTextbooksAPI = () => {
   return request({ url: '/api/agent/textbooks' })
