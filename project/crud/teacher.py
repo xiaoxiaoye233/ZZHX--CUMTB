@@ -574,58 +574,125 @@ async def get_teacher_overview(db: AsyncSession) -> dict:
         return get_teacher_overview_from_csv()
 
 
-async def get_class_report_card(db: AsyncSession, class_id: str | None) -> dict | None:
-    profile = StudentProfile
-    record = StudentQuestionRecord
-    class_query = (
-        select(profile.class_id)
-        .where(profile.class_id.is_not(None), profile.class_id != "")
-        .distinct()
-        .order_by(profile.class_id)
-    )
-    classes = list((await db.scalars(class_query)).all())
+def get_class_report_card_from_files(class_id: str | None) -> dict | None:
+    """当 MySQL 未启动时，从本地 01_按学生 目录兜底组装班级成绩单。"""
+    if not students_data_dir.is_dir():
+        return {"classes": [], "class_id": None, "questions": [], "students": []}
+
+    class_set: set[str] = set()
+    student_blobs: list[dict] = []
+    for folder in sorted(students_data_dir.iterdir()):
+        if not folder.is_dir():
+            continue
+        data = read_json_file(folder / f"{folder.name}.json")
+        if not isinstance(data, dict) or not isinstance(data.get("student"), dict):
+            continue
+        st = data["student"]
+        cid = str(st.get("class_id") or "").strip()
+        if cid:
+            class_set.add(cid)
+            student_blobs.append(data)
+
+    classes = sorted(class_set)
     if class_id is not None and class_id not in classes:
         return None
     if not classes:
         return {"classes": [], "class_id": None, "questions": [], "students": []}
-    selected_class = class_id or classes[0]
 
-    # 从班级名册出发，确保没有有效作答记录的学生也出现在成绩单上。
-    score_query = (
-        select(profile.student_id, profile.score_total, record.exam_id, record.question_id, record.score)
-        .select_from(profile)
-        .outerjoin(record, and_(
-            record.student_id == profile.student_id,
-            record.question_id.is_not(None),
-            record.question_id != "",
-            record.score.is_not(None),
-        ))
-        .where(profile.class_id == selected_class)
-        .order_by(profile.student_id)
-    )
-    questions = set()
-    rows = {}
-    for student_id, total_score, exam_id, question_id, score in await db.execute(score_query):
-        total, scores = rows.setdefault(student_id, (total_score, {}))
-        if question_id is not None:
-            key = (exam_id or "", question_id)
+    selected_class = class_id or classes[0]
+    questions: set[tuple[str, str]] = set()
+    rows: dict[str, tuple[float | None, dict[tuple[str, str], float]]] = {}
+
+    for blob in student_blobs:
+        st = blob["student"]
+        if str(st.get("class_id") or "").strip() != selected_class:
+            continue
+        sid = str(st.get("student_id") or "").strip()
+        total = to_float(st.get("score_total"))
+        scores: dict[tuple[str, str], float] = {}
+        for rec in blob.get("question_records") or []:
+            qid = str(rec.get("question_id") or "").strip()
+            sc = to_float(rec.get("score"))
+            if not qid or sc is None:
+                continue
+            key = (str(rec.get("exam_id") or "").strip(), qid)
             questions.add(key)
-            scores[key] = scores.get(key, 0) + score
+            scores[key] = scores.get(key, 0.0) + sc
+        rows[sid] = (total, scores)
 
     columns = sorted(questions)
     return {
         "classes": classes,
         "class_id": selected_class,
-        "questions": [{"exam_id": exam_id, "question_id": question_id} for exam_id, question_id in columns],
+        "questions": [{"exam_id": eid, "question_id": qid} for eid, qid in columns],
         "students": [
             {
-                "student_id": student_id,
+                "student_id": sid,
                 "total_score": total,
                 "scores": [scores.get(key) for key in columns],
             }
-            for student_id, (total, scores) in rows.items()
+            for sid, (total, scores) in sorted(rows.items())
         ],
     }
+
+
+async def get_class_report_card(db: AsyncSession, class_id: str | None) -> dict | None:
+    try:
+        profile = StudentProfile
+        record = StudentQuestionRecord
+        class_query = (
+            select(profile.class_id)
+            .where(profile.class_id.is_not(None), profile.class_id != "")
+            .distinct()
+            .order_by(profile.class_id)
+        )
+        classes = list((await db.scalars(class_query)).all())
+        if not classes:
+            return get_class_report_card_from_files(class_id)
+        if class_id is not None and class_id not in classes:
+            return None
+        selected_class = class_id or classes[0]
+
+        # 从班级名册出发，确保没有有效作答记录的学生也出现在成绩单上。
+        score_query = (
+            select(profile.student_id, profile.score_total, record.exam_id, record.question_id, record.score)
+            .select_from(profile)
+            .outerjoin(record, and_(
+                record.student_id == profile.student_id,
+                record.question_id.is_not(None),
+                record.question_id != "",
+                record.score.is_not(None),
+            ))
+            .where(profile.class_id == selected_class)
+            .order_by(profile.student_id)
+        )
+        questions = set()
+        rows = {}
+        for student_id, total_score, exam_id, question_id, score in await db.execute(score_query):
+            total, scores = rows.setdefault(student_id, (total_score, {}))
+            if question_id is not None:
+                key = (exam_id or "", question_id)
+                questions.add(key)
+                scores[key] = scores.get(key, 0) + score
+
+        columns = sorted(questions)
+        return {
+            "classes": classes,
+            "class_id": selected_class,
+            "questions": [{"exam_id": exam_id, "question_id": question_id} for exam_id, question_id in columns],
+            "students": [
+                {
+                    "student_id": student_id,
+                    "total_score": total,
+                    "scores": [scores.get(key) for key in columns],
+                }
+                for student_id, (total, scores) in rows.items()
+            ],
+        }
+    except Exception:
+        if db.in_transaction():
+            await db.rollback()
+        return get_class_report_card_from_files(class_id)
 
 
 def _format_teacher_tasks_rows(raw_rows: list[dict], ind_meta: dict[str, dict]) -> dict:

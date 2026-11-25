@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from langchain_chroma import Chroma  # noqa: E402
 from langchain_community.document_loaders import PyPDFLoader, TextLoader  # noqa: E402
+from langchain_core.documents import Document  # noqa: E402
 from langchain_text_splitters import RecursiveCharacterTextSplitter  # noqa: E402
 
 from agent.config.settings import (  # noqa: E402
@@ -29,6 +30,11 @@ from agent.config.settings import (  # noqa: E402
     TEXTBOOK_PDF_DIR,
 )
 from agent.core.llm import get_embed_model  # noqa: E402
+from agent.rag.textbook_locator import (  # noqa: E402
+    record_textbook_tool_hit,
+    rerank_textbook_docs,
+    search_local_textbook_pages,
+)
 
 
 def get_vector_store() -> Chroma:
@@ -72,8 +78,21 @@ def read_single_file(file_path: Path, category: str):
     """用 PyPDFLoader / TextLoader 读取单个文件，并给每页打上分类元数据"""
     suffix = file_path.suffix.lower()
     if suffix == ".pdf":
-        loader = PyPDFLoader(file_path=str(file_path))
-        docs = loader.load()
+        try:
+            loader = PyPDFLoader(file_path=str(file_path))
+            docs = loader.load()
+        except Exception:
+            # 个别 PDF 内嵌特殊 Type1 字体时，使用 pypdfium2 兜底逐页提取
+            import pypdfium2 as pdfium
+
+            docs = []
+            pdf_doc = pdfium.PdfDocument(str(file_path))
+            try:
+                for page_idx in range(len(pdf_doc)):
+                    txt = pdf_doc[page_idx].get_textpage().get_text_range() or ""
+                    docs.append(Document(page_content=txt, metadata={"page": page_idx}))
+            finally:
+                pdf_doc.close()
     elif suffix == ".txt":
         loader = TextLoader(file_path=str(file_path), encoding="utf-8")
         docs = loader.load()
@@ -180,8 +199,34 @@ def search_knowledge(query: str, category: str | None = None, k: int = RETRIEVER
         except Exception:
             docs = []
 
+    if not docs and category == "textbook":
+        local_hits = search_local_textbook_pages(query, top_k=k)
+        docs = [
+            Document(
+                page_content=hit["raw_text"],
+                metadata={
+                    "category": "textbook",
+                    "source_file": hit["source_file"],
+                    "page": hit["page"] - 1,
+                },
+            )
+            for hit in local_hits
+        ]
+
     if not docs:
         return "（当前 PDF 向量知识库中暂无相关文档，请先将教材或课标 PDF 放入 agent/knowledge_base 文件夹并运行向量化。）"
+
+    if category == "textbook":
+        docs = rerank_textbook_docs(query, docs)
+        top_doc = docs[0]
+        top_source = top_doc.metadata.get("source_file", "")
+        top_page = top_doc.metadata.get("page")
+        if top_source:
+            record_textbook_tool_hit(
+                query=query,
+                source_file=str(top_source),
+                page_one_based=(top_page + 1) if isinstance(top_page, int) else 1,
+            )
 
     lines = []
     for index, doc in enumerate(docs, start=1):

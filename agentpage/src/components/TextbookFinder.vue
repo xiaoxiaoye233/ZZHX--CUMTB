@@ -4,8 +4,15 @@ import { storeToRefs } from 'pinia'
 import { FolderOpen, Plus, RefreshCw, Search, Trash2, Upload } from 'lucide-vue-next'
 import { formatFileSize, useTextbookStore } from '@/stores/textbookStore'
 
+const props = defineProps({
+  isTeacher: {
+    type: Boolean,
+    default: false,
+  },
+})
+
 const textbookStore = useTextbookStore()
-const { textbooks, activeTabName, drawerOpen, loading, uploading, notice } =
+const { textbooks, activeTabName, drawerOpen, loading, uploading, notice, noticeType } =
   storeToRefs(textbookStore)
 
 const selectedName = ref('')
@@ -38,10 +45,15 @@ function openBook(book) {
 }
 
 function triggerFileDialog() {
+  if (!props.isTeacher) return
   fileInputRef.value?.click()
 }
 
 async function onFileInputChange(event) {
+  if (!props.isTeacher) {
+    event.target.value = ''
+    return
+  }
   const files = event.target.files
   if (files?.length) {
     await textbookStore.addFiles(files)
@@ -50,13 +62,14 @@ async function onFileInputChange(event) {
 }
 
 async function deleteSelected() {
-  if (!selectedName.value) return
+  if (!props.isTeacher || !selectedName.value) return
   const target = selectedName.value
   selectedName.value = ''
   await textbookStore.removeFiles(target)
 }
 
 async function deleteSingle(bookName) {
+  if (!props.isTeacher) return
   if (selectedName.value === bookName) {
     selectedName.value = ''
   }
@@ -65,7 +78,7 @@ async function deleteSingle(bookName) {
 
 function onCanvasKeydown(event) {
   if (!selectedName.value) return
-  if (event.key === 'Delete' || event.key === 'Backspace') {
+  if (props.isTeacher && (event.key === 'Delete' || event.key === 'Backspace')) {
     event.preventDefault()
     deleteSelected()
   } else if (event.key === 'Enter') {
@@ -75,17 +88,20 @@ function onCanvasKeydown(event) {
 }
 
 function onDragOver(event) {
+  if (!props.isTeacher) return
   event.preventDefault()
   isDraggingOver.value = true
 }
 
 function onDragLeave(event) {
+  if (!props.isTeacher) return
   if (event.currentTarget === event.target) {
     isDraggingOver.value = false
   }
 }
 
 async function onDrop(event) {
+  if (!props.isTeacher) return
   event.preventDefault()
   isDraggingOver.value = false
   const files = event.dataTransfer?.files
@@ -95,14 +111,15 @@ async function onDrop(event) {
 }
 
 onMounted(() => {
-  textbookStore.fetchTextbooks()
+  textbookStore.clearNotice()
+  textbookStore.fetchTextbooks({ force: true })
 })
 </script>
 
 <template>
   <div
     class="finder-container"
-    :class="{ 'is-dragging': isDraggingOver }"
+    :class="{ 'is-dragging': props.isTeacher && isDraggingOver }"
     tabindex="0"
     aria-label="教材文件夹大图视图"
     @click="clearSelection"
@@ -117,7 +134,10 @@ onMounted(() => {
         <FolderOpen :size="16" color="#ffffff" :stroke-width="1.85" />
         <span class="folder-title">教材文件夹</span>
         <span class="folder-count">{{ filteredBooks.length }} 项</span>
-        <span class="folder-tip">双击文件在右侧阅读器打开</span>
+        <span v-if="!props.isTeacher" class="folder-readonly">只读</span>
+        <span class="folder-tip">
+          {{ props.isTeacher ? '双击文件在右侧阅读器打开，支持上传与删除' : '双击文件在右侧阅读器打开' }}
+        </span>
       </div>
 
       <div class="finder-actions">
@@ -132,6 +152,7 @@ onMounted(() => {
         </div>
 
         <button
+          v-if="props.isTeacher"
           type="button"
           class="finder-btn"
           :disabled="uploading"
@@ -142,6 +163,7 @@ onMounted(() => {
         </button>
 
         <button
+          v-if="props.isTeacher"
           type="button"
           class="finder-btn danger"
           :disabled="!selectedName"
@@ -163,6 +185,7 @@ onMounted(() => {
         </button>
 
         <input
+          v-if="props.isTeacher"
           ref="fileInputRef"
           type="file"
           accept=".pdf,.txt,application/pdf,text/plain"
@@ -173,7 +196,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="notice" class="finder-notice" role="status" @click.stop>
+    <div
+      v-if="notice"
+      class="finder-notice"
+      :class="{ 'is-error': noticeType === 'error' }"
+      role="status"
+      @click.stop
+    >
       {{ notice }}
     </div>
 
@@ -181,6 +210,13 @@ onMounted(() => {
     <div class="finder-canvas">
       <div v-if="loading && !textbooks.length" class="finder-empty">
         正在读取教材文件夹…
+      </div>
+
+      <div
+        v-else-if="!filteredBooks.length && (!props.isTeacher || searchQuery.trim())"
+        class="finder-empty"
+      >
+        {{ searchQuery.trim() ? '未找到匹配的教材文件' : '暂无可阅读的教材文件' }}
       </div>
 
       <div v-else class="finder-grid" role="list">
@@ -197,8 +233,9 @@ onMounted(() => {
           @click.stop="selectBook(book)"
           @dblclick.stop="openBook(book)"
         >
-          <!-- 悬停快捷删除角标 -->
+          <!-- 悬停快捷删除角标（仅教师端显示） -->
           <button
+            v-if="props.isTeacher"
             type="button"
             class="item-quick-del"
             :aria-label="`删除 ${book.name}`"
@@ -235,8 +272,9 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- 末尾快捷添加文件大图占位格 -->
+        <!-- 末尾快捷添加文件大图占位格（仅教师端显示） -->
         <button
+          v-if="props.isTeacher"
           type="button"
           class="finder-add-tile"
           title="点击或拖拽文件到此添加教材"
@@ -253,8 +291,20 @@ onMounted(() => {
     <!-- 底部仿 macOS Finder 状态栏 -->
     <footer class="finder-statusbar" @click.stop>
       <span>共 {{ textbooks.length }} 个文件</span>
-      <span v-if="selectedName">已选中：{{ selectedName }}（双击打开阅读，按 Delete 删除）</span>
-      <span v-else>支持拖拽 PDF / TXT 文件到窗口内直接添加</span>
+      <span v-if="selectedName">
+        {{
+          props.isTeacher
+            ? `已选中：${selectedName}（双击打开阅读，按 Delete 删除）`
+            : `已选中：${selectedName}（双击或按 Enter 在右侧阅读器打开）`
+        }}
+      </span>
+      <span v-else>
+        {{
+          props.isTeacher
+            ? '支持拖拽 PDF / TXT 文件到窗口内直接添加'
+            : '只读模式 · 双击任意教材在右侧阅读器打开'
+        }}
+      </span>
     </footer>
   </div>
 </template>
@@ -320,6 +370,16 @@ onMounted(() => {
   background: #303030;
   color: #b8b8b8;
   font-size: 11.5px;
+}
+
+.folder-readonly {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(10, 132, 255, 0.14);
+  border: 1px solid rgba(10, 132, 255, 0.28);
+  color: #9ecbff;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .folder-tip {
@@ -431,6 +491,12 @@ onMounted(() => {
   color: #cfe4ff;
   font-size: 12px;
   flex-shrink: 0;
+}
+
+.finder-notice.is-error {
+  background: #331d1f;
+  border-bottom-color: #5a2b30;
+  color: #ffc9cd;
 }
 
 /* 仿 macOS 文件夹大图画布 */

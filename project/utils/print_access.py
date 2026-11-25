@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import secrets
 import time
 from uuid import UUID
@@ -12,7 +13,26 @@ from schemas.users import UserInfoResponse
 
 COOKIE_NAME = "zjhx_print_session"
 SESSION_SECONDS = 12 * 60 * 60
-_SIGNING_KEY = os.environ.get("PRINT_SESSION_SECRET") or secrets.token_urlsafe(32)
+_SECRET_FILE = Path(__file__).resolve().parents[1] / ".session-secret"
+
+
+def _load_or_create_signing_key() -> str:
+    env_secret = os.environ.get("PRINT_SESSION_SECRET", "").strip()
+    if env_secret:
+        return env_secret
+    try:
+        if _SECRET_FILE.is_file():
+            saved = _SECRET_FILE.read_text(encoding="utf-8").strip()
+            if len(saved) >= 32:
+                return saved
+        generated = secrets.token_urlsafe(32)
+        _SECRET_FILE.write_text(generated, encoding="utf-8")
+        return generated
+    except OSError:
+        return secrets.token_urlsafe(32)
+
+
+_SIGNING_KEY = _load_or_create_signing_key()
 
 
 def set_print_session(response: Response, user: UserInfoResponse, *, secure: bool) -> None:

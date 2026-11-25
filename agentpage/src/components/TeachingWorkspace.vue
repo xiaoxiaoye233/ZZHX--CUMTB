@@ -15,6 +15,7 @@ import {
   BookOpen,
   ClipboardList,
   FileSpreadsheet,
+  FileText,
   LogOut,
   MessageSquare,
   Network,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-vue-next'
 import { getAgentConfigAPI, updateAgentConfigAPI } from '@/apis/agent'
 import { uploadTeacherDataFileAPI } from '@/apis/uploads'
+import StudentReportPanel from '@/components/StudentReportPanel.vue'
 import StudentTasksPanel from '@/components/StudentTasksPanel.vue'
 import TeacherReportCardPanel from '@/components/TeacherReportCardPanel.vue'
 import TeacherTasksPanel from '@/components/TeacherTasksPanel.vue'
@@ -54,6 +56,7 @@ const textbookStore = useTextbookStore()
 const { drawerOpen: textbookOpen, openTabs } = storeToRefs(textbookStore)
 
 const activeSection = ref('chat')
+const reportCardResetSeq = ref(0)
 const historySidebarOpen = ref(true)
 const messagesStreamRef = ref(null)
 const composerInputRef = ref(null)
@@ -174,25 +177,29 @@ const {
   initialMessagesRef,
 })
 
-const topNavItems = [
+const topNavItems = computed(() => [
   { key: 'chat', label: '对话', icon: MessageSquare },
   { key: 'textbook', label: '教材', icon: BookOpen },
   { key: 'tasks', label: '任务', icon: ClipboardList },
   ...(props.role === 'teacher'
     ? [{ key: 'report-card', label: '成绩单', icon: FileSpreadsheet }]
     : []),
-]
+])
 
-// 从底部向上依次为：个人详情（最底）、知识梳理（倒数第二）
-const bottomNavItems = [
+// 从底部向上：个人详情（最底）、知识梳理（倒数第二）；学生端在知识梳理正上方增加「学情报告」
+const bottomNavItems = computed(() => [
+  ...(props.role === 'student'
+    ? [{ key: 'learning-report', label: '学情报告', icon: FileText }]
+    : []),
   { key: 'knowledge', label: '知识梳理', icon: Network },
   { key: 'profile', label: '个人详情', icon: User },
-]
+])
 
 const headerTitle = computed(() => {
   if (activeSection.value === 'textbook') return '教材'
   if (activeSection.value === 'tasks') return '任务'
   if (activeSection.value === 'report-card') return '成绩单'
+  if (activeSection.value === 'learning-report') return '学情报告'
   if (activeSection.value === 'knowledge') return '知识梳理'
   if (activeSection.value === 'profile') return '个人详情'
   return activeSession.value?.title || '新聊天'
@@ -204,6 +211,9 @@ const displayAccount = computed(() => {
 })
 
 function handleNavClick(key) {
+  if (key === 'report-card') {
+    reportCardResetSeq.value += 1
+  }
   activeSection.value = key
   if (key === 'profile' && props.role === 'teacher') {
     syncAutoPrintFromServer()
@@ -389,6 +399,21 @@ watch(
                 <div v-else class="agent-turn">
                   <span v-if="msg.tag" class="turn-tag">{{ msg.tag }}</span>
                   <div class="agent-text">{{ msg.text }}</div>
+                  <button
+                    v-if="msg.textbookRef?.name"
+                    type="button"
+                    class="textbook-ref-pill"
+                    :title="`打开 ${msg.textbookRef.name} 第 ${msg.textbookRef.page || 1} 页`"
+                    @click="textbookStore.openTextbookAtPage(msg.textbookRef)"
+                  >
+                    <BookOpen :size="13" color="#9ecbff" :stroke-width="1.9" />
+                    <span>
+                      已定位教材：{{ msg.textbookRef.title || msg.textbookRef.name }}
+                      <template v-if="msg.textbookRef.page">
+                        · 第 {{ msg.textbookRef.page }} 页
+                      </template>
+                    </span>
+                  </button>
                 </div>
               </template>
 
@@ -429,8 +454,11 @@ watch(
           </div>
         </template>
 
-        <!-- 主体 2：教材（仿 macOS 文件夹大图预览，双击打开右侧阅读器侧边栏） -->
-        <TextbookFinder v-else-if="activeSection === 'textbook'" />
+        <!-- 主体 2：教材（仿 macOS 文件夹大图预览，双击打开右侧阅读器侧边栏；教师可管理，学生只读） -->
+        <TextbookFinder
+          v-else-if="activeSection === 'textbook'"
+          :is-teacher="role === 'teacher'"
+        />
 
         <!-- 主体 3：任务（学生端按知识点展示绿/黑底题目；教师端按班级展示黑到绿得分率知识点） -->
         <template v-else-if="activeSection === 'tasks'">
@@ -438,7 +466,16 @@ watch(
           <StudentTasksPanel v-else :student-id="studentId" />
         </template>
 
-        <TeacherReportCardPanel v-else-if="activeSection === 'report-card' && role === 'teacher'" />
+        <TeacherReportCardPanel
+          v-else-if="activeSection === 'report-card' && role === 'teacher'"
+          :reset-seq="reportCardResetSeq"
+        />
+
+        <!-- 学生端学情报告（展示总得分率、各知识点得分率、错题列表与个性化建议，支持右上角下载 PDF） -->
+        <StudentReportPanel
+          v-else-if="activeSection === 'learning-report' && role === 'student'"
+          :student-id="studentId"
+        />
 
         <!-- 主体 4：知识梳理（Cytoscape 开源知识图谱：教师端可交互编辑，学生端可交互探索） -->
         <KnowledgeGraphPanel
@@ -524,7 +561,7 @@ watch(
       </section>
 
       <!-- 侧边栏展开：浏览器标签式 PDF 阅读器面板 -->
-      <TextbookDrawer v-if="textbookOpen" />
+      <TextbookDrawer v-if="textbookOpen" :is-teacher="role === 'teacher'" />
     </div>
   </div>
 </template>
@@ -1160,6 +1197,31 @@ watch(
 .logout-btn:hover {
   background: #2c1f1f;
   border-color: #6b3434;
+}
+
+.textbook-ref-pill {
+  align-self: flex-start;
+  width: auto;
+  height: 28px;
+  margin-top: 6px;
+  padding: 0 11px;
+  border: 1px solid rgba(10, 132, 255, 0.36);
+  border-radius: 999px;
+  background: rgba(10, 132, 255, 0.12);
+  color: #cfe6ff;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.textbook-ref-pill:hover {
+  background: rgba(10, 132, 255, 0.24);
+  border-color: rgba(59, 158, 255, 0.65);
 }
 
 @media (max-width: 760px) {

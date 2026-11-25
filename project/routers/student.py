@@ -3,10 +3,12 @@ from pathlib import Path
 import sys
 from types import SimpleNamespace
 from typing import Annotated
+from urllib.parse import quote
 from uuid import UUID
 from weakref import WeakValueDictionary
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -28,7 +30,11 @@ from utils.file_tools import read_json_file
 from utils.print_access import require_student_login
 from utils.print_settings import auto_print_enabled
 from utils.response import success_response
-from utils.student_report import generate_and_print_report
+from utils.student_report import (
+    generate_and_print_report,
+    render_student_report_bytes,
+    resolve_student_report_advice,
+)
 
 # 创建 APIRouter 实例
 router = APIRouter(prefix="/api/students", tags=["student"])
@@ -83,6 +89,53 @@ async def get_student_task_board(student_id: str, db: AsyncSession = Depends(get
     if not payload:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"未找到学号 {sid} 的数据")
     return success_response(message="获取学生知识点任务成功", data=payload)
+
+
+@router.get("/{student_id}/learning-report")
+async def get_student_learning_report(
+    student_id: str,
+    include_advice: bool = True,
+    db: AsyncSession = Depends(get_db),
+):
+    # 获取学情报告数据：学生端包含个性化建议，教师端从成绩单点入时可传 include_advice=false 跳过建议
+    sid = student_id.strip().upper()
+    payload = await student.get_student_learning_report(db, sid)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"未找到学号 {sid} 的数据")
+    payload["advice"] = (
+        await asyncio.to_thread(resolve_student_report_advice, sid, payload)
+        if include_advice
+        else ""
+    )
+    return success_response(message="获取学生学情报告成功", data=payload)
+
+
+@router.get("/{student_id}/learning-report/pdf")
+async def download_student_learning_report_pdf(
+    student_id: str,
+    include_advice: bool = True,
+    db: AsyncSession = Depends(get_db),
+):
+    # 直接生成并返回指定学生的学情报告 PDF 文件（支持 include_advice 控制是否输出个性化建议区块）
+    sid = student_id.strip().upper()
+    payload = await student.get_student_learning_report(db, sid)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"未找到学号 {sid} 的数据")
+    payload["include_advice"] = include_advice
+    payload["advice"] = (
+        await asyncio.to_thread(resolve_student_report_advice, sid, payload)
+        if include_advice
+        else ""
+    )
+    pdf_bytes = await asyncio.to_thread(render_student_report_bytes, payload)
+    encoded_name = quote(f"学情报告_{sid}.pdf")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"report_{sid}.pdf\"; filename*=UTF-8''{encoded_name}",
+        },
+    )
 
 
 @router.post("/{student_id}/advice")

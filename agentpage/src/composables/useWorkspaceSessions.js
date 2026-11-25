@@ -1,16 +1,19 @@
 import { computed, ref, watch } from 'vue'
 import { sendAgentMessageAPI } from '@/apis/agent'
+import { useTextbookStore } from '@/stores/textbookStore'
 
 function normalizeMessage(item) {
   if (typeof item === 'string') {
-    return { role: 'user', text: item, tag: '' }
+    return { role: 'user', text: item, tag: '', textbookRef: null }
   }
   const isAgent = item?.role === 'agent' || item?.role === 'assistant'
+  const rawRef = item?.textbookRef || item?.textbook_ref
   return {
     id: typeof item?.id === 'string' ? item.id : '',
     role: isAgent ? 'agent' : 'user',
     text: String(item?.text ?? item?.content ?? ''),
     tag: item?.tag ?? '',
+    textbookRef: rawRef?.name ? rawRef : null,
   }
 }
 
@@ -225,11 +228,16 @@ export function useWorkspaceSessions({ chatRole, studentIdRef, initialMessagesRe
         message: text,
       })
       const reply = res?.data?.reply || res?.reply || res?.msg || '暂时没有收到回复，请稍后再试。'
+      const textbookRef = res?.data?.textbook_ref || res?.textbook_ref || null
       target.messages.push({
         role: 'agent',
         tag: chatRole === 'teacher' ? 'AI 教研助手' : 'Agent 老师',
         text: reply,
+        textbookRef: textbookRef?.name ? textbookRef : null,
       })
+      if (textbookRef?.name) {
+        useTextbookStore().openTextbookAtPage(textbookRef)
+      }
     } catch (err) {
       target.messages.push({
         role: 'agent',

@@ -3,6 +3,13 @@ import { storeToRefs } from 'pinia'
 import { BookOpen, ExternalLink, FileText, PanelRightClose, X } from 'lucide-vue-next'
 import { formatFileSize, useTextbookStore } from '@/stores/textbookStore'
 
+const props = defineProps({
+  isTeacher: {
+    type: Boolean,
+    default: false,
+  },
+})
+
 const textbookStore = useTextbookStore()
 const { openTabs, activeTabName, activeTab, backendOnline } = storeToRefs(textbookStore)
 </script>
@@ -53,13 +60,14 @@ const { openTabs, activeTabName, activeTab, backendOnline } = storeToRefs(textbo
       <div class="doc-info">
         <BookOpen :size="13" color="#ffffff" class="sub-icon" />
         <span class="doc-filename">{{ activeTab.name }}</span>
+        <span v-if="activeTab.page" class="doc-page-badge">第 {{ activeTab.page }} 页</span>
         <span v-if="activeTab.size" class="doc-filesize">{{ formatFileSize(activeTab.size) }}</span>
       </div>
 
       <a
         v-if="!activeTab.offlineFallback || backendOnline"
         class="open-ext-link"
-        :href="textbookStore.resolvePreviewUrl(activeTab.url)"
+        :href="textbookStore.resolvePreviewUrl(activeTab.url, activeTab.page)"
         target="_blank"
         rel="noopener noreferrer"
         title="在新浏览器窗口打开"
@@ -82,15 +90,20 @@ const { openTabs, activeTabName, activeTab, backendOnline } = storeToRefs(textbo
         <BookOpen :size="28" color="#ffffff" />
         <h3>{{ activeTab.name }}</h3>
         <p>
-          当前尚未启动 FastAPI 后端，启动后端后双击即可直接渲染此预设教材；你也可以在左侧点击「添加文件」放入任意本地 PDF 立即阅读。
+          <template v-if="props.isTeacher">
+            当前尚未启动 FastAPI 后端，启动后端后双击即可直接渲染此预设教材；你也可以在左侧点击「添加文件」放入任意本地 PDF 立即阅读。
+          </template>
+          <template v-else>
+            当前尚未启动 FastAPI 后端，启动后端后双击即可直接阅读此教材。
+          </template>
         </p>
       </div>
 
       <iframe
         v-else
-        :key="activeTab.url"
+        :key="`${activeTab.name}-${activeTab.page || 1}-${activeTab.jumpSeq || 0}`"
         class="pdf-frame"
-        :src="textbookStore.resolvePreviewUrl(activeTab.url)"
+        :src="textbookStore.resolvePreviewUrl(activeTab.url, activeTab.page)"
         :title="activeTab.name"
       />
     </div>
@@ -256,6 +269,18 @@ const { openTabs, activeTabName, activeTab, backendOnline } = storeToRefs(textbo
 .doc-filesize {
   color: #828282;
   font-size: 11.5px;
+  flex-shrink: 0;
+}
+
+.doc-page-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(10, 132, 255, 0.18);
+  border: 1px solid rgba(10, 132, 255, 0.35);
+  color: #9ecbff;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 

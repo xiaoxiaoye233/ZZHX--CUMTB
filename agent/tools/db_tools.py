@@ -265,14 +265,53 @@ def _class_rows_from_files(cid: str, is_all: bool, group_name: str):
         for r in _read_csv(DATASET_DIR / "02_按班级" / "班级_指标汇总.csv")
         if (r.get("群体") or "").strip() == group_name
     ]
-    ind_rows.sort(key=lambda r: r["score_rate"] or 0)
-    return stu_rows, theme_rows, ind_rows[:3]
+    ind_rows.sort(key=lambda r: (r["score_rate"] is None, r["score_rate"] if r["score_rate"] is not None else 999))
+    return stu_rows, theme_rows, ind_rows
 
 
-@tool(description="查询某个班级（如 DC01、DC02）或全年级（传 '全年级'）的整体学情：班级人数、平均分、各主题得分率、最薄弱主题、薄弱知识点和重点关注学生。")
+def _is_overall_grade_query(raw_class_id: str) -> bool:
+    s = str(raw_class_id or "").strip()
+    if not s:
+        return True
+    upper = s.upper()
+    overall_aliases = {
+        "全年级",
+        "全部",
+        "全部班级",
+        "所有班",
+        "所有班级",
+        "这两个班",
+        "两个班",
+        "两班",
+        "各班",
+        "总体",
+        "整体",
+        "整体情况",
+        "总体情况",
+        "全班",
+        "ALL",
+    }
+    if upper in overall_aliases or s in overall_aliases:
+        return True
+    if any(kw in s for kw in ("两个班", "两班", "所有班", "全部班", "全年级", "整体", "总体")):
+        return True
+    # 同时包含 DC01 与 DC02（如 "DC01和DC02"、"DC01,DC02"）时同样视为两个班整体情况
+    if "DC01" in upper and "DC02" in upper:
+        return True
+    return False
+
+
+@tool(
+    description=(
+        "查询某个班级（如 DC01、DC02）或全部班级整体学情（当教师提到'这两个班'、'两个班'、'全部班级'、"
+        "'总体'、'整体'或'全年级'时，参数直接传 '全年级'）：返回人数、平均分、总得分率、最薄弱主题、"
+        "全部知识点得分率从低到高排行及重点关注学生。"
+    )
+)
 def query_class_analysis(class_id: str) -> str:
-    cid = class_id.strip().upper()
-    is_all = class_id.strip() in ("全年级", "全部", "all", "ALL")
+    raw_input = str(class_id or "").strip()
+    is_all = _is_overall_grade_query(raw_input)
+    cid = raw_input.upper()
     group_name = "全年级" if is_all else cid
 
     try:
@@ -294,21 +333,37 @@ def query_class_analysis(class_id: str) -> str:
         )
         ind_rows = query_mysql(
             "SELECT indicator_name, score, full_score, score_rate "
-            "FROM class_indicator_summary WHERE group_name = %s ORDER BY score_rate ASC LIMIT 3",
+            "FROM class_indicator_summary WHERE group_name = %s ORDER BY score_rate ASC",
             (group_name,),
         )
     except Exception:
         stu_rows, theme_rows, ind_rows = _class_rows_from_files(cid, is_all, group_name)
 
     if not stu_rows:
-        return f"未找到班级「{cid}」的记录，可尝试传 DC01、DC02 或 全年级。"
+        return f"未找到班级「{raw_input}」的记录，可传 DC01、DC02 或 全年级。"
 
     scores = [r["score"] for r in stu_rows if r["score"] is not None]
+    fulls = [r["full_score"] for r in stu_rows if r["full_score"] is not None]
     avg_score = round(sum(scores) / len(scores), 2) if scores else 0
+    overall_rate = (sum(scores) / sum(fulls)) if sum(fulls) > 0 else None
+    class_names = sorted({str(r.get("class_id") or "").strip() for r in stu_rows if r.get("class_id")})
+    header_label = f"全部班级（{'、'.join(class_names)}）整体" if is_all and class_names else group_name
+
     lines = [
-        f"【{group_name} 整体学情分析】",
-        f"学生人数：{len(stu_rows)} 人；平均总分：{avg_score} 分。",
+        f"【{header_label}学情分析】",
+        f"学生总数：{len(stu_rows)} 人；平均总分：{avg_score} 分；整体总得分率：{_pct(overall_rate)}（总得分 {format_num(sum(scores))}/{format_num(sum(fulls))} 分）。",
     ]
+
+    if is_all and len(class_names) > 1:
+        cls_parts = []
+        for cname in class_names:
+            c_members = [r for r in stu_rows if r.get("class_id") == cname]
+            c_sc = sum(r["score"] for r in c_members if r["score"] is not None)
+            c_fl = sum(r["full_score"] for r in c_members if r["full_score"] is not None)
+            c_avg = round(c_sc / len(c_members), 2) if c_members else 0
+            c_rate = (c_sc / c_fl) if c_fl > 0 else None
+            cls_parts.append(f"{cname} 班 {len(c_members)} 人（均分 {c_avg} 分，得分率 {_pct(c_rate)}）")
+        lines.append("各班概况：" + "；".join(cls_parts) + "。")
 
     if theme_rows:
         lowest = theme_rows[0]
@@ -317,16 +372,21 @@ def query_class_analysis(class_id: str) -> str:
             f"{format_num(lowest['score'])}/{format_num(lowest['full_score'])} 分）。"
         )
         lines.append("各主题得分率排行（从低到高）：")
-        for t in theme_rows:
+        for idx, t in enumerate(theme_rows, start=1):
             lines.append(
-                f"  - {t['theme_name']}：{_pct(t['score_rate'])}（{format_num(t['score'])}/{format_num(t['full_score'])} 分）"
+                f"  {idx}. {t['theme_name']}：{_pct(t['score_rate'])}（{format_num(t['score'])}/{format_num(t['full_score'])} 分）"
             )
 
     if ind_rows:
-        lines.append("最薄弱的 3 个知识点：")
-        for ind in ind_rows:
+        weakest_ind = ind_rows[0]
+        lines.append(
+            f"总体最薄弱（做得最差）的知识点：{weakest_ind['indicator_name']}（得分率 {_pct(weakest_ind['score_rate'])}，"
+            f"得分 {format_num(weakest_ind['score'])}/{format_num(weakest_ind['full_score'])} 分）。"
+        )
+        lines.append("各知识点得分率排行（从低到高）：")
+        for idx, ind in enumerate(ind_rows, start=1):
             lines.append(
-                f"  - {ind['indicator_name']}：得分率 {_pct(ind['score_rate'])}（{format_num(ind['score'])}/{format_num(ind['full_score'])} 分）"
+                f"  {idx}. {ind['indicator_name']}：得分率 {_pct(ind['score_rate'])}（{format_num(ind['score'])}/{format_num(ind['full_score'])} 分）"
             )
 
     focus_students = [r for r in stu_rows if r["score_rate"] is not None][:5]

@@ -11,11 +11,18 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from agent.config.settings import PROMPTS_DIR
 from agent.core.llm import get_chat_model
+from agent.core.plain_text import ensure_plain_text
 from agent.memory.file_history import (
     append_chat_messages,
+    attach_last_assistant_ref,
     invoke_with_history,
     load_chat_history,
     student_session_key,
+)
+from agent.rag.textbook_locator import (
+    begin_textbook_turn,
+    finish_textbook_turn,
+    resolve_best_textbook_ref,
 )
 from agent.tools.db_tools import (
     get_student_summary_text,
@@ -63,14 +70,14 @@ def _generate_advice(student_id: str, prompt_filename: str) -> str:
     model = get_chat_model()
     chain = prompt | model | StrOutputParser()
 
-    # 3. 执行 Chain 生成个性化建议
+    # 3. 执行 Chain 生成个性化建议，并执行纯文本清洗
     advice = chain.invoke(
         {
             "student_id": sid,
             "student_data": student_data,
         }
     )
-    return advice.strip()
+    return ensure_plain_text(advice)
 
 
 def generate_student_advice(student_id: str) -> str:
@@ -82,19 +89,14 @@ def generate_student_report_advice(student_id: str) -> str:
 
 
 # ==================== 功能 2：学生对话（教材 RAG + 数据库 + 防御性语言 + 长期会话记忆） ====================
-def student_chat(student_id: str, message: str) -> str:
-    """
-    经典 Agent 写法（P5 课程） + 长期会话记忆（P3 第 21 课）：
-    create_agent + 3 个工具（查本人成绩、查本人错题、检索教材 PDF）+ 防御性系统提示词 + 本地 JSON 持久化历史
-    """
+def student_chat_with_ref(student_id: str, message: str) -> tuple[str, dict | None]:
+    """学生对话并返回（纯文本回复, 最相关的教材文件及页码引用）。"""
     sid = student_id.strip().upper()
     user_text = message.strip()
     session_key = student_session_key(sid)
 
-    # 1. 读取带防御性语言护栏的系统提示词，并填入当前学生的学号
     system_prompt = load_prompt_text("student_chat.txt").replace("{student_id}", sid)
 
-    # 2. 创建学生答疑 Agent
     agent = create_agent(
         model=get_chat_model(),
         tools=[
@@ -105,4 +107,22 @@ def student_chat(student_id: str, message: str) -> str:
         system_prompt=system_prompt,
     )
 
-    return invoke_with_history(agent, session_key, user_text, "Agent 老师")
+    begin_textbook_turn()
+    try:
+        reply = ensure_plain_text(invoke_with_history(agent, session_key, user_text, "Agent 老师"))
+    finally:
+        tool_refs = finish_textbook_turn()
+
+    textbook_ref = resolve_best_textbook_ref(user_text, tool_refs, assistant_reply=reply)
+    if textbook_ref:
+        attach_last_assistant_ref(session_key, textbook_ref)
+    return reply, textbook_ref
+
+
+def student_chat(student_id: str, message: str) -> str:
+    """
+    经典 Agent 写法（P5 课程） + 长期会话记忆（P3 第 21 课）：
+    create_agent + 3 个工具（查本人成绩、查本人错题、检索教材 PDF）+ 防御性系统提示词 + 本地 JSON 持久化历史
+    """
+    reply, _ = student_chat_with_ref(student_id, message)
+    return reply

@@ -1,11 +1,70 @@
 <script setup>
-import { onMounted, ref, shallowRef } from 'vue'
+import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-vue-next'
 import { getTeacherReportCardAPI } from '@/apis/analysis'
+import StudentReportPanel from '@/components/StudentReportPanel.vue'
+
+const props = defineProps({
+  resetSeq: { type: Number, default: 0 },
+})
 
 const report = shallowRef(null)
 const selectedClass = ref('')
+const sortOrder = ref('default') // 'default' | 'descending' | 'ascending'
+const viewingStudentId = ref('')
 const loading = ref(true)
 const error = ref('')
+
+watch(
+  () => props.resetSeq,
+  () => {
+    viewingStudentId.value = ''
+  },
+)
+
+const ariaSortValue = computed(() => {
+  if (sortOrder.value === 'descending') return 'descending'
+  if (sortOrder.value === 'ascending') return 'ascending'
+  return 'none'
+})
+
+const sortedStudents = computed(() => {
+  const list = report.value?.students || []
+  if (sortOrder.value === 'default') return list
+
+  const direction = sortOrder.value === 'ascending' ? 1 : -1
+  return [...list].sort((a, b) => {
+    const aHas =
+      a.total_score !== null &&
+      a.total_score !== undefined &&
+      Number.isFinite(Number(a.total_score))
+    const bHas =
+      b.total_score !== null &&
+      b.total_score !== undefined &&
+      Number.isFinite(Number(b.total_score))
+
+    // 无总分记录的学生始终排在末尾
+    if (!aHas && !bHas) {
+      return String(a.student_id).localeCompare(String(b.student_id), 'zh-CN', { numeric: true })
+    }
+    if (!aHas) return 1
+    if (!bHas) return -1
+
+    const diff = Number(a.total_score) - Number(b.total_score)
+    if (diff !== 0) return direction * diff
+    return String(a.student_id).localeCompare(String(b.student_id), 'zh-CN', { numeric: true })
+  })
+})
+
+function cycleTotalSort() {
+  if (sortOrder.value === 'default') {
+    sortOrder.value = 'descending'
+  } else if (sortOrder.value === 'descending') {
+    sortOrder.value = 'ascending'
+  } else {
+    sortOrder.value = 'default'
+  }
+}
 
 async function loadReport(classId = selectedClass.value) {
   selectedClass.value = classId
@@ -26,32 +85,76 @@ onMounted(() => loadReport())
 </script>
 
 <template>
-  <section class="report-panel" aria-label="班级成绩单" :aria-busy="loading">
+  <!-- 点击具体学号后：展示该同学的学情报告（不含个性化建议） -->
+  <StudentReportPanel
+    v-if="viewingStudentId"
+    :student-id="viewingStudentId"
+    :show-advice="false"
+    :show-back="true"
+    @back="viewingStudentId = ''"
+  />
+
+  <section
+    v-show="!viewingStudentId"
+    class="report-panel"
+    aria-label="班级成绩单"
+    :aria-busy="loading"
+  >
     <div v-if="report?.classes.length" class="report-toolbar">
-      <label for="report-card-class">班级</label>
-      <select
-        id="report-card-class"
-        :value="selectedClass"
-        :disabled="loading"
-        @change="loadReport($event.target.value)"
-      >
-        <option v-for="classId in report.classes" :key="classId" :value="classId">
-          {{ classId }}
-        </option>
-      </select>
+      <div class="toolbar-group">
+        <label for="report-card-class">班级</label>
+        <select
+          id="report-card-class"
+          :value="selectedClass"
+          :disabled="loading"
+          @change="loadReport($event.target.value)"
+        >
+          <option v-for="classId in report.classes" :key="classId" :value="classId">
+            {{ classId }}
+          </option>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label for="report-card-sort">总分排序</label>
+        <select
+          id="report-card-sort"
+          v-model="sortOrder"
+          :disabled="loading"
+          aria-label="按总分排序"
+        >
+          <option value="default">默认排序（按学号）</option>
+          <option value="descending">总分从高到低</option>
+          <option value="ascending">总分从低到高</option>
+        </select>
+      </div>
     </div>
+
     <p v-if="loading" class="report-state" role="status">正在加载成绩单…</p>
     <div v-else-if="error" class="report-state" role="alert">
       {{ error }}
       <button type="button" @click="loadReport()">重试</button>
     </div>
-    <p v-else-if="!report?.students.length" class="report-state">暂无班级成绩</p>
+    <p v-else-if="!sortedStudents.length" class="report-state">暂无班级成绩</p>
     <div v-else class="report-table-scroll" tabindex="0" aria-label="学生得分表，可左右滚动">
       <table :aria-label="`${selectedClass} 成绩单`">
         <thead>
           <tr>
             <th scope="col" class="student-column">学号</th>
-            <th scope="col" class="total-column">总分</th>
+            <th scope="col" class="total-column" :aria-sort="ariaSortValue">
+              <button
+                type="button"
+                class="total-sort-btn"
+                :class="{ active: sortOrder !== 'default' }"
+                title="点击切换按总分排序"
+                @click="cycleTotalSort"
+              >
+                <span>总分</span>
+                <ArrowDown v-if="sortOrder === 'descending'" :size="13" :stroke-width="2.2" />
+                <ArrowUp v-else-if="sortOrder === 'ascending'" :size="13" :stroke-width="2.2" />
+                <ArrowUpDown v-else :size="13" :stroke-width="1.9" class="sort-idle-icon" />
+              </button>
+            </th>
             <th
               v-for="(question, index) in report.questions"
               :key="index"
@@ -63,8 +166,17 @@ onMounted(() => loadReport())
           </tr>
         </thead>
         <tbody>
-          <tr v-for="student in report.students" :key="student.student_id">
-            <th scope="row" class="student-column">{{ student.student_id }}</th>
+          <tr v-for="student in sortedStudents" :key="student.student_id">
+            <th scope="row" class="student-column">
+              <button
+                type="button"
+                class="student-id-btn"
+                :title="`查看 ${student.student_id} 的学情报告`"
+                @click="viewingStudentId = student.student_id"
+              >
+                {{ student.student_id }}
+              </button>
+            </th>
             <td class="total-column">{{ student.total_score ?? '—' }}</td>
             <td v-for="(score, index) in student.scores" :key="index">{{ score ?? '—' }}</td>
           </tr>
@@ -88,24 +200,34 @@ onMounted(() => loadReport())
 .report-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 16px;
   color: #d4d4d4;
   font-size: 14px;
 }
 
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .report-toolbar select,
 .report-state button {
+  width: auto;
+  height: auto;
   padding: 6px 10px;
   border: 1px solid #454545;
   border-radius: 7px;
   background: #292929;
   color: #f5f5f5;
   font: inherit;
+  letter-spacing: 0;
 }
 
 .report-toolbar select {
-  max-width: calc(100% - 3em);
   color-scheme: dark;
+  cursor: pointer;
 }
 
 .report-state {
@@ -159,6 +281,59 @@ thead th {
   vertical-align: bottom;
 }
 
+.total-sort-btn {
+  width: auto;
+  height: auto;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.total-sort-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.total-sort-btn.active {
+  color: #60a5fa;
+}
+
+.sort-idle-icon {
+  opacity: 0.6;
+}
+
+.student-id-btn {
+  width: auto;
+  height: auto;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #93c5fd;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.student-id-btn:hover {
+  background: rgba(59, 130, 246, 0.18);
+  color: #dbeafe;
+  text-decoration: underline;
+}
+
 .exam-label {
   display: block;
   color: #b0b0b0;
@@ -194,6 +369,7 @@ tbody tr:nth-child(even) td {
 
 .total-column {
   left: var(--student-column-width);
+  min-width: 72px;
   font-weight: 600;
 }
 

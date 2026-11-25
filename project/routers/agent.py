@@ -18,8 +18,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.append(str(REPO_ROOT))
 
 from agent.config.settings import TEXTBOOK_PDF_DIR
-from agent.core.student_agent import get_student_history, student_chat
-from agent.core.teacher_agent import get_teacher_history, teacher_chat
+from agent.core.student_agent import get_student_history, student_chat_with_ref
+from agent.core.teacher_agent import get_teacher_history, teacher_chat_with_ref
 from agent.rag.vector_store import load_pdfs_to_chroma
 from schemas.agent import AgentChatRequest
 from utils.knowledge_graph import (
@@ -65,8 +65,13 @@ async def chat_with_agent(payload: AgentChatRequest, request: Request):
     if payload.role == "student":
         student_id = (payload.student_id or "D01").strip().upper()
         # 使用 asyncio.to_thread 在后台线程执行同步 LangChain 调用，不阻塞 FastAPI
-        reply = await asyncio.to_thread(student_chat, student_id, user_message)
-        return success_response(message="对话成功", data={"reply": reply, "role": "student"})
+        reply, textbook_ref = await asyncio.to_thread(
+            student_chat_with_ref, student_id, user_message
+        )
+        return success_response(
+            message="对话成功",
+            data={"reply": reply, "role": "student", "textbook_ref": textbook_ref},
+        )
 
     if payload.role == "teacher":
         require_teacher(request)
@@ -75,8 +80,13 @@ async def chat_with_agent(payload: AgentChatRequest, request: Request):
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="请在项目根目录 .env 中设置 DASHSCOPE_API_KEY，然后重启后端。",
             )
-        reply = await asyncio.to_thread(teacher_chat, user_message, payload.session_id)
-        return success_response(message="对话成功", data={"reply": reply, "role": "teacher"})
+        reply, textbook_ref = await asyncio.to_thread(
+            teacher_chat_with_ref, user_message, payload.session_id
+        )
+        return success_response(
+            message="对话成功",
+            data={"reply": reply, "role": "teacher", "textbook_ref": textbook_ref},
+        )
 
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,

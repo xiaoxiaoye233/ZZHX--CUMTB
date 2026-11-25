@@ -19,6 +19,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableWithMessageHistory
 
 from agent.config.settings import CHAT_HISTORY_DIR, MAX_HISTORY_MESSAGES
+from agent.core.plain_text import ensure_plain_text
 
 
 _HISTORY_LOCK = RLock()
@@ -96,6 +97,19 @@ def clear_chat_history(session_key: str) -> None:
     save_chat_history(session_key, [])
 
 
+def attach_last_assistant_ref(session_key: str, textbook_ref: dict | None) -> None:
+    """将本轮命中的教材文件与页码附加到最新一条助手回复中，便于历史会话回放跳转。"""
+    if not textbook_ref:
+        return
+    with _HISTORY_LOCK:
+        history = load_chat_history(session_key)
+        for row in reversed(history):
+            if row.get("role") == "assistant":
+                row["textbook_ref"] = textbook_ref
+                save_chat_history(session_key, history)
+                return
+
+
 class FileChatMessageHistory(BaseChatMessageHistory):
     """在 LangChain 消息与项目原有的 role/content/tag JSON 之间转换。"""
 
@@ -148,14 +162,16 @@ def _prepare_agent_input(prompt_value: ChatPromptValue) -> dict[str, list[BaseMe
 
 
 def _parse_agent_reply(result: dict) -> str:
-    """从 Agent 的消息列表中取出最终回复。"""
+    """从 Agent 的消息列表中取出最终回复，并执行纯文本清洗（严禁 Markdown / LaTeX）。"""
     content = result["messages"][-1].content
     if isinstance(content, str):
-        return content.strip()
-    if isinstance(content, list):
+        raw = content.strip()
+    elif isinstance(content, list):
         parts = [item.get("text", "") if isinstance(item, dict) else str(item) for item in content]
-        return "".join(parts).strip()
-    return str(content).strip()
+        raw = "".join(parts).strip()
+    else:
+        raw = str(content).strip()
+    return ensure_plain_text(raw)
 
 
 def invoke_with_history(agent, session_key: str, message: str, assistant_tag: str) -> str:
