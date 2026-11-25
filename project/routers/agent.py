@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+import logging
 import os
 from pathlib import Path
 import re
@@ -20,7 +21,11 @@ if str(REPO_ROOT) not in sys.path:
 from agent.config.settings import TEXTBOOK_PDF_DIR
 from agent.core.student_agent import get_student_history, student_chat_with_ref
 from agent.core.teacher_agent import get_teacher_history, teacher_chat_with_ref
-from agent.rag.vector_store import load_pdfs_to_chroma
+from agent.rag.vector_store import (
+    get_file_md5,
+    load_pdfs_to_chroma,
+    remove_file_from_chroma,
+)
 from schemas.agent import AgentChatRequest
 from utils.knowledge_graph import (
     load_knowledge_graph,
@@ -136,11 +141,14 @@ def _build_textbook_item(file_path: Path) -> dict:
     }
 
 
+logger = logging.getLogger(__name__)
+
+
 async def _background_rebuild_rag() -> None:
     try:
         await asyncio.to_thread(load_pdfs_to_chroma)
     except Exception:
-        pass
+        logger.warning("后台自动向量化教材知识库失败", exc_info=True)
 
 
 @router.get("/textbooks")
@@ -187,6 +195,9 @@ async def upload_textbook(file: UploadFile = File(...)):
 
     TEXTBOOK_PDF_DIR.mkdir(parents=True, exist_ok=True)
     target_path = TEXTBOOK_PDF_DIR / safe_name
+    if target_path.is_file():
+        old_md5 = get_file_md5(target_path)
+        await asyncio.to_thread(remove_file_from_chroma, safe_name, old_md5)
     target_path.write_bytes(content)
 
     asyncio.create_task(_background_rebuild_rag())
@@ -197,7 +208,7 @@ async def upload_textbook(file: UploadFile = File(...)):
 
 
 @router.delete("/textbooks/{filename}", dependencies=[Depends(require_teacher)])
-def delete_textbook(filename: str):
+async def delete_textbook(filename: str):
     TEXTBOOK_PDF_DIR.mkdir(parents=True, exist_ok=True)
     base_dir = TEXTBOOK_PDF_DIR.resolve()
     safe_name = Path(filename).name
@@ -205,7 +216,9 @@ def delete_textbook(filename: str):
     if target.parent != base_dir or not target.is_file() or target.suffix.lower() not in (".pdf", ".txt"):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到要删除的教材文件")
 
+    old_md5 = get_file_md5(target)
     target.unlink()
+    await asyncio.to_thread(remove_file_from_chroma, safe_name, old_md5)
     return success_response(message=f"文件「{safe_name}」已删除", data={"name": safe_name})
 
 

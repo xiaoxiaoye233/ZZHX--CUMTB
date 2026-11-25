@@ -6,8 +6,10 @@ RAG 向量知识库模块（完全沿用 P3 课程的 PyPDFLoader + RecursiveCha
 4. 提供按分类（教材 / 课标）检索函数给 Agent 工具调用
 """
 import hashlib
+import logging
 from pathlib import Path
 import sys
+from threading import Lock
 
 # 支持直接命令行运行：cd D:\ZJHX--CUMTB\agent && python rag/vector_store.py
 REPO_ROOT = Path(__file__).resolve().parents[2]  # D:\ZJHX--CUMTB
@@ -35,6 +37,10 @@ from agent.rag.textbook_locator import (  # noqa: E402
     rerank_textbook_docs,
     search_local_textbook_pages,
 )
+
+
+_VECTORIZE_LOCK = Lock()
+logger = logging.getLogger(__name__)
 
 
 def get_vector_store() -> Chroma:
@@ -74,6 +80,30 @@ def save_md5(md5_hex: str) -> None:
         f.write(md5_hex + "\n")
 
 
+def remove_file_from_chroma(source_filename: str, md5_hex: str | None = None) -> None:
+    """删除教材文件时，同步清理 Chroma 中该文件的向量切片与 md5.txt 记录，支持后续重传更新。"""
+    with _VECTORIZE_LOCK:
+        try:
+            vs = get_vector_store()
+            vs._collection.delete(where={"source_file": source_filename})
+        except Exception:
+            logger.warning("清理 Chroma 中文件 %s 的向量记录失败", source_filename, exc_info=True)
+
+        if md5_hex and MD5_STORE_PATH.is_file():
+            try:
+                kept = [
+                    line.strip()
+                    for line in MD5_STORE_PATH.read_text(encoding="utf-8").splitlines()
+                    if line.strip() and line.strip() != md5_hex
+                ]
+                MD5_STORE_PATH.write_text(
+                    ("\n".join(kept) + "\n") if kept else "",
+                    encoding="utf-8",
+                )
+            except OSError:
+                pass
+
+
 def read_single_file(file_path: Path, category: str):
     """用 PyPDFLoader / TextLoader 读取单个文件，并给每页打上分类元数据"""
     suffix = file_path.suffix.lower()
@@ -109,8 +139,13 @@ def read_single_file(file_path: Path, category: str):
 def load_pdfs_to_chroma() -> dict:
     """
     扫描 knowledge_base/textbook 和 knowledge_base/curriculum 下的全部 PDF/TXT，
-    切分并向量化存入 Chroma 数据库。
+    切分并向量化存入 Chroma 数据库（带互斥锁，防止并发重复入库）。
     """
+    with _VECTORIZE_LOCK:
+        return _load_pdfs_to_chroma_unlocked()
+
+
+def _load_pdfs_to_chroma_unlocked() -> dict:
     TEXTBOOK_PDF_DIR.mkdir(parents=True, exist_ok=True)
     CURRICULUM_PDF_DIR.mkdir(parents=True, exist_ok=True)
 
