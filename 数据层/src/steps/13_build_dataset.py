@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SRC = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SRC / "lib"))
 
+import content_map as CM  # noqa: E402
 import dataset as DS  # noqa: E402
 import versioning as VS  # noqa: E402
 from tools import load_facts  # noqa: E402
@@ -158,6 +159,11 @@ H_CITATION = [
     ("group", "小节"), ("theme_id", "主题"), ("section_heading", "课标小节"), ("item_label", "条目"),
     ("text", "课标原文"), ("used_by_indicators", "用于指标"), ("file_page", "文件页"), ("body_page", "正文页"),
 ]
+H_EDGE = [
+    ("from_indicator", "前置指标"), ("from_name", "前置指标名"),
+    ("to_indicator", "后续指标"), ("to_name", "后续指标名"),
+    ("relation_type", "类型"), ("rationale_text", "判断依据"),
+]
 H_MANIFEST = [("path", "文件"), ("bytes", "字节"), ("sha256", "sha256")]
 
 
@@ -256,6 +262,17 @@ def main() -> int:
     ctext = DS.build_citation_text(store)
     DS.write_json(OUT / "00_字典" / "课标原文.json", ctext)
     DS.write_csv(OUT / "00_字典" / "课标原文.csv", ctext["原文条目"], H_CITATION)
+
+    # ---- 前置关系（数据表里没有这个字段，按教材章节顺序归纳，供 Agent 排先后）----
+    name_of = {row["indicator_id"]: row["indicator_name"] for row in ind_dict}
+    edges = [dict(edge) for edge in CM.PREREQUISITE_EDGES]
+    for edge in edges:
+        edge["from_name"] = name_of.get(edge["from_indicator"], "")
+        edge["to_name"] = name_of.get(edge["to_indicator"], "")
+    DS.write_json(OUT / "00_字典" / "必要联系.json", dict(
+        说明="九条前置关系。数据表里没有这个字段，按教材章节顺序归纳，属教学解释；Agent 引用时须说明这一点。",
+        edges=edges))
+    DS.write_csv(OUT / "00_字典" / "必要联系.csv", edges, H_EDGE)
 
     # ---- 个人 ----
     index_rows = []
