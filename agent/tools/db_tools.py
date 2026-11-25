@@ -101,7 +101,26 @@ def _student_summary_from_files(sid: str) -> str:
             lines.append(
                 f"- 【{theme}】{name}：暂未作答（已做 0/{row.get('他能考到')} 题），教材范围：{textbook}，可补练习题：{rec}"
             )
+    lines.extend(_prerequisite_lines())
     return "\n".join(lines)
+
+
+def _prerequisite_lines() -> list[str]:
+    """九条前置关系，拼成两行给 Agent（数据表里没有这个字段，按教材章节顺序归纳）。"""
+    payload = _read_json(DATASET_DIR / "00_字典" / "必要联系.json") or {}
+    edges = payload.get("edges") if isinstance(payload, dict) else payload
+    if not isinstance(edges, list) or not edges:
+        return []
+    out = ["\n指标之间的先后关系（数据表里没有这个字段，按教材章节顺序归纳）："]
+    for edge in edges:
+        if not isinstance(edge, dict):
+            continue
+        out.append(
+            f"- {edge.get('from_name') or edge.get('from_indicator')} → "
+            f"{edge.get('to_name') or edge.get('to_indicator')}（{edge.get('relation_type', '')}）："
+            f"{edge.get('rationale_text', '')}"
+        )
+    return out
 
 
 def get_student_summary_text(student_id: str) -> str:
@@ -158,6 +177,7 @@ def get_student_summary_text(student_id: str) -> str:
                 f"教材范围：{textbook}，可补练习题：{rec}"
             )
 
+    lines.extend(_prerequisite_lines())
     return "\n".join(lines)
 
 

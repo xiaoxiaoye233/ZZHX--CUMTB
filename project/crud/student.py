@@ -68,6 +68,31 @@ def _split_question_ids(raw: str | None) -> list[str]:
     return [part.strip() for part in re.split(r"[、,，;；\s]+", str(raw).strip()) if part.strip()]
 
 
+def _load_prerequisite_edges() -> list[dict]:
+    """九条前置关系（数据表里没有这个字段，按教材章节顺序归纳）。"""
+    payload = read_json_file(dataset_dir / "00_字典" / "必要联系.json")
+    edges = payload.get("edges") if isinstance(payload, dict) else payload
+    if not isinstance(edges, list):
+        return []
+    out = []
+    for edge in edges:
+        if not isinstance(edge, dict):
+            continue
+        frm = str(edge.get("from_indicator") or "").strip()
+        to = str(edge.get("to_indicator") or "").strip()
+        if not frm or not to:
+            continue
+        out.append({
+            "from_indicator": frm,
+            "from_name": str(edge.get("from_name") or "").strip(),
+            "to_indicator": to,
+            "to_name": str(edge.get("to_name") or "").strip(),
+            "relation_type": str(edge.get("relation_type") or "").strip(),
+            "rationale": str(edge.get("rationale_text") or "").strip(),
+        })
+    return out
+
+
 def _load_question_content_map() -> dict[str, dict]:
     items = read_json_file(dataset_dir / "06_题目内容.json")
     if not isinstance(items, list):
@@ -491,6 +516,13 @@ async def get_student_learning_report(db: AsyncSession, student_id: str) -> dict
 
     wrong_questions = sorted(wrong_map.values(), key=lambda item: _question_sort_key(item["question_id"]))
 
+    # 6. 前置关系：只保留两端都在该生指标里的那几条，给建议排先后用
+    kp_ids = {kp["id"] for kp in knowledge_points}
+    prerequisite_edges = [
+        edge for edge in _load_prerequisite_edges()
+        if edge["from_indicator"] in kp_ids and edge["to_indicator"] in kp_ids
+    ]
+
     return {
         "student_id": sid,
         "class_id": profile_dict.get("class_id") or "",
@@ -506,4 +538,5 @@ async def get_student_learning_report(db: AsyncSession, student_id: str) -> dict
         "knowledge_points": knowledge_points,
         "wrong_questions": wrong_questions,
         "wrong_question_ids": [w["question_id"] for w in wrong_questions],
+        "prerequisite_edges": prerequisite_edges,
     }
