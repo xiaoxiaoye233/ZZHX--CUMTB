@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智教慧学 · 知识图谱</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #141416;
+      color: #f4f4f5;
+      font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", sans-serif;
+    }
+    .app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+    }
+    .topbar {
+      height: 52px;
+      padding: 0 18px;
+      background: #1d1d20;
+      border-bottom: 1px solid #2d2d32;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 15.5px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    .badge {
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: #27272c;
+      border: 1px solid #383842;
+      color: #a1a1aa;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .search-input {
+      width: 190px;
+      height: 31px;
+      padding: 0 10px;
+      border: 1px solid #36363d;
+      border-radius: 7px;
+      background: #141416;
+      color: #f4f4f5;
+      font-size: 12.5px;
+      outline: none;
+    }
+    .search-input:focus { border-color: #3b82f6; }
+    .btn {
+      height: 31px;
+      padding: 0 12px;
+      border: 1px solid #383840;
+      border-radius: 7px;
+      background: #26262b;
+      color: #f4f4f5;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn:hover { background: #32323a; border-color: #4b4b57; }
+    .main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+    }
+    .viewport {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+      background-color: #161618;
+      background-image: radial-gradient(#2a2a2f 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    .viewport.panning { cursor: grabbing; }
+    .world {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+    .edges-svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      overflow: visible;
+      pointer-events: none;
+    }
+    .edge-path {
+      fill: none;
+      stroke: #52525b;
+      stroke-width: 2.4;
+      transition: opacity 0.16s ease, stroke 0.16s ease, stroke-width 0.16s ease;
+    }
+    .edge-path.is-prev { stroke: #38bdf8; stroke-width: 3.1; }
+    .edge-path.is-next { stroke: #34d399; stroke-width: 3.1; }
+    .edge-path.is-dimmed { opacity: 0.2; }
+    .node-card {
+      position: absolute;
+      width: 236px;
+      min-height: 84px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 2.5px solid #3b82f6;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.36);
+      transition: opacity 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+    .node-card .theme-pill {
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, 0.72);
+      background: rgba(0, 0, 0, 0.28);
+      padding: 1px 7px;
+      border-radius: 999px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .node-card .node-title {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .node-card.is-selected {
+      border-width: 3.5px;
+      border-color: #ffffff !important;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16), 0 14px 30px rgba(0, 0, 0, 0.5);
+    }
+    .node-card.is-prev { border-color: #38bdf8 !important; border-width: 3px; }
+    .node-card.is-next { border-color: #34d399 !important; border-width: 3px; }
+    .node-card.is-dimmed { opacity: 0.22; }
+    .legend {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      background: rgba(24, 24, 28, 0.88);
+      border: 1px solid #2e2e36;
+      color: #a1a1aa;
+      font-size: 12px;
+      display: flex;
+      gap: 14px;
+      pointer-events: none;
+    }
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .inspector {
+      width: 350px;
+      flex-shrink: 0;
+      background: #1c1c1f;
+      border-left: 1px solid #2c2c32;
+      padding: 20px 18px 28px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .ins-theme {
+      display: inline-block;
+      align-self: flex-start;
+      padding: 2px 9px;
+      border-radius: 6px;
+      background: #27272d;
+      color: #cbd5e1;
+      font-size: 11.5px;
+    }
+    .ins-title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.4; }
+    .desc-box {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #141417;
+      border: 1px solid #2a2a30;
+    }
+    .desc-box h3 { margin: 0 0 6px; font-size: 12px; color: #9ca3af; }
+    .desc-box p { margin: 0; font-size: 13.5px; line-height: 1.65; color: #e4e4e7; }
+    .rel-block h3 { margin: 0 0 8px; font-size: 13px; }
+    .rel-prev-h { color: #7dd3fc; }
+    .rel-next-h { color: #6ee7b7; }
+    .rel-card {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      border-radius: 9px;
+      background: #141417;
+      border: 1px solid #2c2c34;
+      color: #f4f4f5;
+      text-align: left;
+      cursor: pointer;
+    }
+    .rel-card:hover { border-color: #52525b; background: #19191e; }
+    .rel-card strong { display: block; font-size: 13.5px; margin-bottom: 4px; }
+    .rel-card span { display: block; font-size: 12px; color: #9ca3af; line-height: 1.45; }
+    .empty-tip { margin: 0; padding: 8px 10px; border-radius: 8px; background: #151518; color: #71717a; font-size: 12px; }
+    @media (max-width: 860px) {
+      .main { flex-direction: column; }
+      .inspector { width: 100%; height: 44%; border-left: 0; border-top: 1px solid #2c2c32; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <h1>智教慧学 · 知识图谱</h1>
+        <span id="statsBadge" class="badge"></span>
+      </div>
+      <div class="controls">
+        <input id="searchInput" class="search-input" type="search" placeholder="搜索知识点名称…" />
+        <button id="layoutBtn" class="btn" type="button">自动排版</button>
+        <button id="fitBtn" class="btn" type="button">居中适配</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <div id="viewport" class="viewport">
+        <div id="world" class="world">
+          <svg id="edgesSvg" class="edges-svg">
+            <defs>
+              <marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#71717a" />
+              </marker>
+              <marker id="arrow-prev" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#38bdf8" />
+              </marker>
+              <marker id="arrow-next" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#34d399" />
+              </marker>
+            </defs>
+            <g id="edgesGroup"></g>
+          </svg>
+          <div id="nodesLayer"></div>
+        </div>
+        <div class="legend">
+          <span><i class="dot" style="background:#ffffff"></i>当前选中</span>
+          <span><i class="dot" style="background:#38bdf8"></i>前置知识</span>
+          <span><i class="dot" style="background:#34d399"></i>后续知识</span>
+          <span>滚轮缩放 · 拖拽平移或移动卡片</span>
+        </div>
+      </div>
+
+      <aside id="inspector" class="inspector"></aside>
+    </div>
+  </div>
+
+  <script>
+    const DATA = {"nodes":[{"id":"T01I1","name":"表示数量关系并代入求值","theme":"代数式与整式运算","description":"能分析具体问题中的简单数量关系并用代数式表示；会把具体数值代入代数式进行准确计算（教材范围：七年级上册 P68–109）。","color":"#3b82f6","bg":"rgb(29, 51, 86)","x":130,"y":280},{"id":"T01I2","name":"识别同类项、去括号并化简","theme":"代数式与整式运算","description":"理解整式的概念，掌握合并同类项和去括号法则（注意括号前为负号时各项变号），能进行整式加减化简运算。","color":"#3b82f6","bg":"rgb(29, 51, 86)","x":430,"y":160},{"id":"T01I3","name":"用整式解释具体问题","theme":"代数式与整式运算","description":"借助现实情境理解字母表示数的意义，能够先对整式进行化简合并，再结合实际情境解释代数式所表达的数量规律。","color":"#3b82f6","bg":"rgb(29, 51, 86)","x":430,"y":400},{"id":"T02I1","name":"运用等式性质解一元一次方程","theme":"方程与方程组","description":"掌握等式的基本性质，熟练完成去分母、去括号、移项、合并同类项与系数化为 1，准确求解一元一次方程。","color":"#8b5cf6","bg":"rgb(52, 40, 86)","x":740,"y":280},{"id":"T02I2","name":"用消元法解二元一次方程组","theme":"方程与方程组","description":"理解消元思想，灵活运用代入消元法或加减消元法将二元一次方程组转化为一元一次方程求解。","color":"#8b5cf6","bg":"rgb(52, 40, 86)","x":1060,"y":95},{"id":"T02I3","name":"列方程或方程组解决实际问题","theme":"方程与方程组","description":"能根据现实问题中的等量关系建立方程或方程组模型，求解后能结合实际意义检验解的合理性。","color":"#8b5cf6","bg":"rgb(52, 40, 86)","x":1060,"y":265},{"id":"T03I1","name":"运用不等式性质求解一元一次不等式","theme":"不等式与不等式组","description":"探索并掌握不等式的基本性质，解数字系数的一元一次不等式并在数轴上表示解集，特别注意乘除负数时不等号方向改变。","color":"#10b981","bg":"rgb(17, 66, 53)","x":1060,"y":440},{"id":"T03I2","name":"求两个一元一次不等式解集的交集","theme":"不等式与不等式组","description":"分别求出不等式组中各个不等式的解集，借助数轴确定公共部分（交集），准确处理端点空心与实心。","color":"#10b981","bg":"rgb(17, 66, 53)","x":1380,"y":355},{"id":"T03I3","name":"根据实际限制列不等式并解释范围","theme":"不等式与不等式组","description":"抓住实际情境中的“至少”“不超过”等关键词列出不等式，求解后结合整数约束或实际限制解释取值范围。","color":"#10b981","bg":"rgb(17, 66, 53)","x":1380,"y":530}],"edges":[{"id":"T01I1->T01I2","source":"T01I1","target":"T01I2","relation":"合并同类项与去括号需先认识代数式中的项与系数。"},{"id":"T01I1->T01I3","source":"T01I1","target":"T01I3","relation":"先会把数量关系写成代数式，才能进一步用整式解释规律。"},{"id":"T01I2->T01I3","source":"T01I2","target":"T01I3","relation":"用整式解释问题通常需要先去括号、合并同类项化简。"},{"id":"T01I2->T02I1","source":"T01I2","target":"T02I1","relation":"解一元一次方程的移项与合并同类项直接建立在整式加减之上。"},{"id":"T02I1->T02I2","source":"T02I1","target":"T02I2","relation":"二元一次方程组消元后仍需按一元一次方程步骤求解。"},{"id":"T02I1->T02I3","source":"T02I1","target":"T02I3","relation":"应用题建模列出方程后，依赖方程求解基本功得出结果。"},{"id":"T02I1->T03I1","source":"T02I1","target":"T03I1","relation":"解不等式步骤与解一元一次方程对应，核心差异在负数乘除变号。"},{"id":"T03I1->T03I2","source":"T03I1","target":"T03I2","relation":"求不等式组交集的前提是能正确解出每一个单独的不等式。"},{"id":"T03I1->T03I3","source":"T03I1","target":"T03I3","relation":"列出实际问题不等式后，需正确求解才能给出取值范围。"}],"roleLabel":"教师端","exportedAt":"2026/11/26 21:30:14"};
+    const CARD_W = 236;
+    const CARD_H = 84;
+    const nodes = DATA.nodes.map(n => ({ ...n }));
+    const edges = DATA.edges.map(e => ({ ...e }));
+    const nodeById = new Map(nodes.map(n => [n.id, n]));
+
+    document.getElementById('statsBadge').textContent =
+      nodes.length + ' 个知识点 · ' + edges.length + ' 条关联 · 导出于 ' + DATA.exportedAt;
+
+    const viewport = document.getElementById('viewport');
+    const world = document.getElementById('world');
+    const nodesLayer = document.getElementById('nodesLayer');
+    const edgesGroup = document.getElementById('edgesGroup');
+    const inspector = document.getElementById('inspector');
+    const searchInput = document.getElementById('searchInput');
+
+    let panX = 0, panY = 0, scale = 1;
+    let selectedId = nodes[0] ? nodes[0].id : '';
+    let searchKeyword = '';
+
+    const cardEls = new Map();
+    const edgeEls = [];
+
+    function applyTransform() {
+      world.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+    }
+
+    function boundaryPoint(cx, cy, tx, ty) {
+      const dx = tx - cx;
+      const dy = ty - cy;
+      if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return { x: cx, y: cy };
+      const hw = CARD_W / 2 + 3;
+      const hh = CARD_H / 2 + 3;
+      const t = Math.min(hw / (Math.abs(dx) || 0.0001), hh / (Math.abs(dy) || 0.0001));
+      return { x: cx + dx * t, y: cy + dy * t };
+    }
+
+    function updateEdgesGeometry() {
+      for (const item of edgeEls) {
+        const s = nodeById.get(item.edge.source);
+        const t = nodeById.get(item.edge.target);
+        if (!s || !t) continue;
+        const p1 = boundaryPoint(s.x, s.y, t.x, t.y);
+        const p2 = boundaryPoint(t.x, t.y, s.x, s.y);
+        const bend = Math.max(45, Math.abs(p2.x - p1.x) * 0.42);
+        const c1x = p1.x + (p2.x >= p1.x ? bend : -bend);
+        const c2x = p2.x - (p2.x >= p1.x ? bend : -bend);
+        item.path.setAttribute('d', 'M ' + p1.x + ' ' + p1.y + ' C ' + c1x + ' ' + p1.y + ', ' + c2x + ' ' + p2.y + ', ' + p2.x + ' ' + p2.y);
+      }
+    }
+
+    function renderInspector() {
+      inspector.textContent = '';
+      const node = nodeById.get(selectedId);
+      if (!node) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-tip';
+        empty.textContent = '点击左侧图谱中的任意知识点查看详情与前后置联系。';
+        inspector.appendChild(empty);
+        return;
+      }
+
+      if (node.theme) {
+        const themeEl = document.createElement('span');
+        themeEl.className = 'ins-theme';
+        themeEl.textContent = node.theme;
+        inspector.appendChild(themeEl);
+      }
+
+      const titleEl = document.createElement('h2');
+      titleEl.className = 'ins-title';
+      titleEl.textContent = node.name;
+      inspector.appendChild(titleEl);
+
+      const descBox = document.createElement('div');
+      descBox.className = 'desc-box';
+      const descH = document.createElement('h3');
+      descH.textContent = '知识点介绍';
+      const descP = document.createElement('p');
+      descP.textContent = node.description || '暂无详细介绍';
+      descBox.append(descH, descP);
+      inspector.appendChild(descBox);
+
+      const prevEdges = edges.filter(e => e.target === node.id);
+      const nextEdges = edges.filter(e => e.source === node.id);
+
+      function buildRelSection(headingText, cls, list, getOtherId) {
+        const sec = document.createElement('div');
+        sec.className = 'rel-block';
+        const h = document.createElement('h3');
+        h.className = cls;
+        h.textContent = headingText + '（' + list.length + '）';
+        sec.appendChild(h);
+        if (!list.length) {
+          const p = document.createElement('p');
+          p.className = 'empty-tip';
+          p.textContent = '暂无关联知识点';
+          sec.appendChild(p);
+        } else {
+          for (const rel of list) {
+            const other = nodeById.get(getOtherId(rel));
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'rel-card';
+            const st = document.createElement('strong');
+            st.textContent = other ? other.name : getOtherId(rel);
+            btn.appendChild(st);
+            if (rel.relation) {
+              const sp = document.createElement('span');
+              sp.textContent = rel.relation;
+              btn.appendChild(sp);
+            }
+            btn.addEventListener('click', () => selectNode(getOtherId(rel), true));
+            sec.appendChild(btn);
+          }
+        }
+        return sec;
+      }
+
+      inspector.appendChild(buildRelSection('前置知识', 'rel-prev-h', prevEdges, e => e.source));
+      inspector.appendChild(buildRelSection('后续知识', 'rel-next-h', nextEdges, e => e.target));
+    }
+
+    function updateHighlight() {
+      const prevSet = new Set();
+      const nextSet = new Set();
+      if (selectedId) {
+        for (const e of edges) {
+          if (e.target === selectedId) prevSet.add(e.source);
+          if (e.source === selectedId) nextSet.add(e.target);
+        }
+      }
+      const kw = searchKeyword.trim().toLowerCase();
+
+      for (const n of nodes) {
+        const el = cardEls.get(n.id);
+        if (!el) continue;
+        el.classList.remove('is-selected', 'is-prev', 'is-next', 'is-dimmed');
+        const matchesKw = !kw || n.name.toLowerCase().includes(kw) || (n.theme || '').toLowerCase().includes(kw);
+        if (!matchesKw) {
+          el.classList.add('is-dimmed');
+          continue;
+        }
+        if (selectedId) {
+          if (n.id === selectedId) el.classList.add('is-selected');
+          else if (prevSet.has(n.id)) el.classList.add('is-prev');
+          else if (nextSet.has(n.id)) el.classList.add('is-next');
+          else if (!kw) el.classList.add('is-dimmed');
+        }
+      }
+
+      for (const item of edgeEls) {
+        const e = item.edge;
+        item.path.classList.remove('is-prev', 'is-next', 'is-dimmed');
+        if (selectedId) {
+          if (e.target === selectedId) {
+            item.path.classList.add('is-prev');
+            item.path.setAttribute('marker-end', 'url(#arrow-prev)');
+          } else if (e.source === selectedId) {
+            item.path.classList.add('is-next');
+            item.path.setAttribute('marker-end', 'url(#arrow-next)');
+          } else {
+            item.path.classList.add('is-dimmed');
+            item.path.setAttribute('marker-end', 'url(#arrow-default)');
+          }
+        } else {
+          item.path.setAttribute('marker-end', 'url(#arrow-default)');
+        }
+      }
+    }
+
+    function selectNode(id, centerOnNode) {
+      selectedId = id;
+      updateHighlight();
+      renderInspector();
+      const target = nodeById.get(id);
+      if (centerOnNode && target) {
+        const rect = viewport.getBoundingClientRect();
+        panX = rect.width / 2 - target.x * scale;
+        panY = rect.height / 2 - target.y * scale;
+        applyTransform();
+      }
+    }
+
+    function fitView() {
+      if (!nodes.length) return;
+      const rect = viewport.getBoundingClientRect();
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const n of nodes) {
+        minX = Math.min(minX, n.x - CARD_W / 2);
+        maxX = Math.max(maxX, n.x + CARD_W / 2);
+        minY = Math.min(minY, n.y - CARD_H / 2);
+        maxY = Math.max(maxY, n.y + CARD_H / 2);
+      }
+      const pad = 56;
+      const gw = Math.max(1, maxX - minX);
+      const gh = Math.max(1, maxY - minY);
+      scale = Math.min(1.35, Math.max(0.32, Math.min((rect.width - pad * 2) / gw, (rect.height - pad * 2) / gh)));
+      panX = (rect.width - gw * scale) / 2 - minX * scale;
+      panY = (rect.height - gh * scale) / 2 - minY * scale;
+      applyTransform();
+    }
+
+    function autoLayout() {
+      const inDeg = new Map(nodes.map(n => [n.id, 0]));
+      const outMap = new Map(nodes.map(n => [n.id, []]));
+      for (const e of edges) {
+        inDeg.set(e.target, (inDeg.get(e.target) || 0) + 1);
+        outMap.get(e.source).push(e.target);
+      }
+      const layer = new Map();
+      const queue = [];
+      for (const n of nodes) {
+        if ((inDeg.get(n.id) || 0) === 0) {
+          layer.set(n.id, 0);
+          queue.push(n.id);
+        }
+      }
+      while (queue.length) {
+        const cur = queue.shift();
+        const curL = layer.get(cur) || 0;
+        for (const nxt of outMap.get(cur) || []) {
+          layer.set(nxt, Math.max(layer.get(nxt) || 0, curL + 1));
+          inDeg.set(nxt, inDeg.get(nxt) - 1);
+          if (inDeg.get(nxt) === 0) queue.push(nxt);
+        }
+      }
+      const groups = new Map();
+      for (const n of nodes) {
+        const l = layer.get(n.id) || 0;
+        if (!groups.has(l)) groups.set(l, []);
+        groups.get(l).push(n);
+      }
+      for (const [l, list] of groups.entries()) {
+        list.forEach((n, idx) => {
+          n.x = 180 + l * 320;
+          n.y = 140 + (idx - (list.length - 1) / 2) * 148 + 220;
+          const el = cardEls.get(n.id);
+          if (el) {
+            el.style.left = (n.x - CARD_W / 2) + 'px';
+            el.style.top = (n.y - CARD_H / 2) + 'px';
+          }
+        });
+      }
+      updateEdgesGeometry();
+      fitView();
+    }
+
+    function mountGraph() {
+      for (const e of edges) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('class', 'edge-path');
+        path.setAttribute('marker-end', 'url(#arrow-default)');
+        edgesGroup.appendChild(path);
+        edgeEls.push({ edge: e, path });
+      }
+
+      for (const n of nodes) {
+        const card = document.createElement('div');
+        card.className = 'node-card';
+        card.style.left = (n.x - CARD_W / 2) + 'px';
+        card.style.top = (n.y - CARD_H / 2) + 'px';
+        card.style.backgroundColor = n.bg;
+        card.style.borderColor = n.color;
+
+        if (n.theme) {
+          const tp = document.createElement('span');
+          tp.className = 'theme-pill';
+          tp.textContent = n.theme;
+          card.appendChild(tp);
+        }
+        const title = document.createElement('div');
+        title.className = 'node-title';
+        title.textContent = n.name;
+        card.appendChild(title);
+
+        let draggingNode = false;
+        let moved = false;
+        let startX = 0, startY = 0, origX = 0, origY = 0;
+
+        card.addEventListener('pointerdown', (ev) => {
+          ev.stopPropagation();
+          draggingNode = true;
+          moved = false;
+          startX = ev.clientX;
+          startY = ev.clientY;
+          origX = n.x;
+          origY = n.y;
+          card.setPointerCapture(ev.pointerId);
+        });
+        card.addEventListener('pointermove', (ev) => {
+          if (!draggingNode) return;
+          const dx = (ev.clientX - startX) / scale;
+          const dy = (ev.clientY - startY) / scale;
+          if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved = true;
+          n.x = origX + dx;
+          n.y = origY + dy;
+          card.style.left = (n.x - CARD_W / 2) + 'px';
+          card.style.top = (n.y - CARD_H / 2) + 'px';
+          updateEdgesGeometry();
+        });
+        card.addEventListener('pointerup', (ev) => {
+          if (!draggingNode) return;
+          draggingNode = false;
+          card.releasePointerCapture(ev.pointerId);
+          if (!moved) selectNode(n.id, false);
+        });
+
+        nodesLayer.appendChild(card);
+        cardEls.set(n.id, card);
+      }
+
+      updateEdgesGeometry();
+      fitView();
+      updateHighlight();
+      renderInspector();
+    }
+
+    let panning = false, pStartX = 0, pStartY = 0, pOrigX = 0, pOrigY = 0, panMoved = false;
+    viewport.addEventListener('pointerdown', (ev) => {
+      panning = true;
+      panMoved = false;
+      pStartX = ev.clientX;
+      pStartY = ev.clientY;
+      pOrigX = panX;
+      pOrigY = panY;
+      viewport.classList.add('panning');
+      viewport.setPointerCapture(ev.pointerId);
+    });
+    viewport.addEventListener('pointermove', (ev) => {
+      if (!panning) return;
+      const dx = ev.clientX - pStartX;
+      const dy = ev.clientY - pStartY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) panMoved = true;
+      panX = pOrigX + dx;
+      panY = pOrigY + dy;
+      applyTransform();
+    });
+    viewport.addEventListener('pointerup', (ev) => {
+      if (!panning) return;
+      panning = false;
+      viewport.classList.remove('panning');
+      viewport.releasePointerCapture(ev.pointerId);
+      if (!panMoved) {
+        selectedId = '';
+        updateHighlight();
+        renderInspector();
+      }
+    });
+
+    viewport.addEventListener('wheel', (ev) => {
+      ev.preventDefault();
+      const rect = viewport.getBoundingClientRect();
+      const mx = ev.clientX - rect.left;
+      const my = ev.clientY - rect.top;
+      const factor = ev.deltaY < 0 ? 1.1 : 0.9;
+      const nextScale = Math.min(2.6, Math.max(0.28, scale * factor));
+      panX = mx - ((mx - panX) / scale) * nextScale;
+      panY = my - ((my - panY) / scale) * nextScale;
+      scale = nextScale;
+      applyTransform();
+    }, { passive: false });
+
+    searchInput.addEventListener('input', () => {
+      searchKeyword = searchInput.value;
+      updateHighlight();
+    });
+    document.getElementById('fitBtn').addEventListener('click', fitView);
+    document.getElementById('layoutBtn').addEventListener('click', autoLayout);
+    window.addEventListener('resize', fitView);
+
+    mountGraph();
+  </script>
+</body>
+</html>

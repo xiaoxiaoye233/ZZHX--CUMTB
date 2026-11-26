@@ -1,0 +1,77 @@
+{
+ "说明": "九条前置关系。数据表里没有这个字段，按教材章节顺序归纳，属教学解释；Agent 引用时须说明这一点。",
+ "edges": [
+  {
+   "from_indicator": "T01I1",
+   "to_indicator": "T01I2",
+   "relation_type": "同主题递进",
+   "rationale_text": "合并同类项、去括号的对象是「项」，先能看懂代数式里有哪些项，谈不上去括号与合并。",
+   "from_name": "表示数量关系并代入求值",
+   "to_name": "识别同类项、去括号并化简"
+  },
+  {
+   "from_indicator": "T01I1",
+   "to_indicator": "T01I3",
+   "relation_type": "同主题递进",
+   "rationale_text": "不会把数量关系写成代数式，就写不出整式，T01I3 的「用整式解释」无从下手。",
+   "from_name": "表示数量关系并代入求值",
+   "to_name": "用整式解释具体问题"
+  },
+  {
+   "from_indicator": "T01I2",
+   "to_indicator": "T01I3",
+   "relation_type": "同主题递进",
+   "rationale_text": "T01I3 的作答往往要先化简再解释，去括号与合并同类项错一处，解释就跟着错。",
+   "from_name": "识别同类项、去括号并化简",
+   "to_name": "用整式解释具体问题"
+  },
+  {
+   "from_indicator": "T01I2",
+   "to_indicator": "T02I1",
+   "relation_type": "跨主题支撑",
+   "rationale_text": "解一元一次方程的移项、合并同类项直接复用整式加减，符号处理不过关会在这里重现。",
+   "from_name": "识别同类项、去括号并化简",
+   "to_name": "运用等式性质解一元一次方程"
+  },
+  {
+   "from_indicator": "T02I1",
+   "to_indicator": "T02I2",
+   "relation_type": "同主题递进",
+   "rationale_text": "消元只是把二元化为一元，化完仍要按 T02I1 的方法解一元一次方程。",
+   "from_name": "运用等式性质解一元一次方程",
+   "to_name": "用消元法解二元一次方程组"
+  },
+  {
+   "from_indicator": "T02I1",
+   "to_indicator": "T02I3",
+   "relation_type": "同主题递进",
+   "rationale_text": "列方程解应用题的两端是「建模」和「解方程」，缺后者则列对也算错。",
+   "from_name": "运用等式性质解一元一次方程",
+   "to_name": "列方程或方程组解决简单实际问题并检验"
+  },
+  {
+   "from_indicator": "T02I1",
+   "to_indicator": "T03I1",
+   "relation_type": "跨主题支撑",
+   "rationale_text": "解不等式的步骤与解一元一次方程一一对应，差别只在乘除负数时不等号反向；不会解方程就谈不上「注意反向」。",
+   "from_name": "运用等式性质解一元一次方程",
+   "to_name": "运用不等式性质求解，负数乘除时正确改变方向"
+  },
+  {
+   "from_indicator": "T03I1",
+   "to_indicator": "T03I2",
+   "relation_type": "同主题递进",
+   "rationale_text": "求不等式组的解集，前提是能分别解出每个不等式；单个解错，交集必错。",
+   "from_name": "运用不等式性质求解，负数乘除时正确改变方向",
+   "to_name": "求两个一元一次不等式解集的交集"
+  },
+  {
+   "from_indicator": "T03I1",
+   "to_indicator": "T03I3",
+   "relation_type": "同主题递进",
+   "rationale_text": "列出不等式后必须能解出来并解释取值范围，否则建议停在「列出」这一步。",
+   "from_name": "运用不等式性质求解，负数乘除时正确改变方向",
+   "to_name": "根据实际限制列不等式并解释取值范围"
+  }
+ ]
+}

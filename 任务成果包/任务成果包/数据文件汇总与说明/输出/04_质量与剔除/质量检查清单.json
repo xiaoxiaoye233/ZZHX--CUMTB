@@ -1,0 +1,83 @@
+[
+ {
+  "issue_code": "blank_attempt",
+  "severity": "error",
+  "record_count": 5,
+  "sample_record_ids": "DR0017、DR0034、DR0332、DR0497、DR0744",
+  "description": "学生未作答（答案与得分皆空）",
+  "handling": "不计入统计，也不按 0 分处理",
+  "affects_denominator": "是"
+ },
+ {
+  "issue_code": "pending_score",
+  "severity": "error",
+  "record_count": 4,
+  "sample_record_ids": "DR0223、DR0275、DR0411、DR0532",
+  "description": "有作答内容但尚未评分",
+  "handling": "不计入统计，也不按 0 分处理",
+  "affects_denominator": "是"
+ },
+ {
+  "issue_code": "score_over_full",
+  "severity": "error",
+  "record_count": 2,
+  "sample_record_ids": "DR0361、DR0535",
+  "description": "得分大于满分，数据错误",
+  "handling": "剔除，不进入任何统计",
+  "affects_denominator": "是"
+ },
+ {
+  "issue_code": "answer_text_differs",
+  "severity": "info",
+  "record_count": 33,
+  "sample_record_ids": "DR0008、DR0078、DR0134、DR0133、DR0156、DR0209、DR0204、DR0245",
+  "description": "满分记录的作答文本与参考答案写法不同（如 x=9 与 9）",
+  "handling": "不得按文本比对判分，一律采用记录总分",
+  "affects_denominator": "否"
+ },
+ {
+  "issue_code": "cross_node_duplicate",
+  "severity": "info",
+  "record_count": 37,
+  "sample_record_ids": "",
+  "description": "同一学生同一题目在多个测验节点作答（共 37 对，涉及 25 人）",
+  "handling": "计入证据时按不同题目去重，同题只算 1 条",
+  "affects_denominator": "否"
+ },
+ {
+  "issue_code": "multi_version",
+  "severity": "warning",
+  "record_count": 7,
+  "sample_record_ids": "DR0023、DR0082、DR0210、DR0237、DR0264、DR0446、DR0558",
+  "description": "同一作答事件有多个修订版本，其中 7 例得分发生变化",
+  "handling": "按最大修订版本保留一条，全部版本在 quality_report 中披露",
+  "affects_denominator": "否"
+ },
+ {
+  "issue_code": "question_not_in_node",
+  "severity": "warning",
+  "record_count": 1,
+  "sample_record_ids": "DR0515",
+  "description": "该题不在本次测验节点的可用题目清单内（未教先测）",
+  "handling": "保留记录，但在指标判定中标记 teaching_covered_status=未教",
+  "affects_denominator": "否"
+ },
+ {
+  "issue_code": "rubric_sum_mismatch",
+  "severity": "warning",
+  "record_count": 3,
+  "sample_record_ids": "DR0133、DR0361、DR0535",
+  "description": "各评分点得分之和与记录总分不一致",
+  "handling": "以记录总分为准，异常留痕",
+  "affects_denominator": "否"
+ },
+ {
+  "issue_code": "theme_mismatch",
+  "severity": "warning",
+  "record_count": 1,
+  "sample_record_ids": "DR0081",
+  "description": "记录里的主题编号与题目与材料表不一致",
+  "handling": "以材料表为准，记录保留",
+  "affects_denominator": "否"
+ }
+]

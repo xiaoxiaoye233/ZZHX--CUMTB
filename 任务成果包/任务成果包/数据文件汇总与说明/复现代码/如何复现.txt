@@ -1,0 +1,1 @@
+将模拟学生和作答记录放到输入文件夹后，并按requirements配置好python环境后，运行“复现代码\src\steps”内的程序即可

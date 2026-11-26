@@ -24,6 +24,9 @@ Thumbs.db
 /project/.report-advice-cache.json
 /project/.session-secret
 
+# Third-party SDK / vendor sources (not part of this project)
+/Arduino_Core_STM32-2.10.0/
+
 # Local environment config (contains API keys; copy .env.example to .env)
 .env
 .env.*

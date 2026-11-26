@@ -1,0 +1,16 @@
+[
+ {
+  "exam_id": "N01",
+  "exam_date": "2026-01-20",
+  "taught_themes": "T01、T02",
+  "questions_available": 27,
+  "note": "模拟上学期期末：T01及T02中的一元一次方程；方程组和不等式尚未教学。"
+ },
+ {
+  "exam_id": "N02",
+  "exam_date": "2026-06-17",
+  "taught_themes": "T01、T02、T03",
+  "questions_available": 45,
+  "note": "模拟下学期期末：复习T01，新增T02方程组及T03不等式。"
+ }
+]

@@ -1,0 +1,434 @@
+[
+ {
+  "material_id": "Q001",
+  "theme_id": "T01",
+  "indicator_id": "T01I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q002",
+  "theme_id": "T01",
+  "indicator_id": "T01I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q003",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "选择题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q004",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q005",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q006",
+  "theme_id": "T01",
+  "indicator_id": "T01I1",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q007",
+  "theme_id": "T01",
+  "indicator_id": "T01I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q008",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q009",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q010",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q011",
+  "theme_id": "T01",
+  "indicator_id": "T01I3",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q012",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q013",
+  "theme_id": "T01",
+  "indicator_id": "T01I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q014",
+  "theme_id": "T01",
+  "indicator_id": "T01I1",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q015",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q016",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q017",
+  "theme_id": "T01",
+  "indicator_id": "T01I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q018",
+  "theme_id": "T01",
+  "indicator_id": "T01I3",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q019",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q020",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q021",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "选择题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q022",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q023",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q024",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q025",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q026",
+  "theme_id": "T02",
+  "indicator_id": "T02I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q027",
+  "theme_id": "T02",
+  "indicator_id": "T02I3",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q028",
+  "theme_id": "T02",
+  "indicator_id": "T02I2",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q029",
+  "theme_id": "T02",
+  "indicator_id": "T02I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q030",
+  "theme_id": "T02",
+  "indicator_id": "T02I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q031",
+  "theme_id": "T02",
+  "indicator_id": "T02I2",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q032",
+  "theme_id": "T02",
+  "indicator_id": "T02I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q033",
+  "theme_id": "T02",
+  "indicator_id": "T02I3",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q034",
+  "theme_id": "T02",
+  "indicator_id": "T02I3",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q035",
+  "theme_id": "T02",
+  "indicator_id": "T02I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q036",
+  "theme_id": "T02",
+  "indicator_id": "T02I3",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q037",
+  "theme_id": "T03",
+  "indicator_id": "T03I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q038",
+  "theme_id": "T03",
+  "indicator_id": "T03I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q039",
+  "theme_id": "T03",
+  "indicator_id": "T03I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q040",
+  "theme_id": "T03",
+  "indicator_id": "T03I1",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q041",
+  "theme_id": "T03",
+  "indicator_id": "T03I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q042",
+  "theme_id": "T03",
+  "indicator_id": "T03I1",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q043",
+  "theme_id": "T03",
+  "indicator_id": "T03I1",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q044",
+  "theme_id": "T03",
+  "indicator_id": "T03I2",
+  "question_type": "选择题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q045",
+  "theme_id": "T03",
+  "indicator_id": "T03I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q046",
+  "theme_id": "T03",
+  "indicator_id": "T03I2",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q047",
+  "theme_id": "T03",
+  "indicator_id": "T03I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q048",
+  "theme_id": "T03",
+  "indicator_id": "T03I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q049",
+  "theme_id": "T03",
+  "indicator_id": "T03I2",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q050",
+  "theme_id": "T03",
+  "indicator_id": "T03I3",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q051",
+  "theme_id": "T03",
+  "indicator_id": "T03I3",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q052",
+  "theme_id": "T03",
+  "indicator_id": "T03I3",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ },
+ {
+  "material_id": "Q053",
+  "theme_id": "T03",
+  "indicator_id": "T03I2",
+  "question_type": "填空题",
+  "full_score": 1,
+  "rubric_point_count": 1
+ },
+ {
+  "material_id": "Q054",
+  "theme_id": "T03",
+  "indicator_id": "T03I3",
+  "question_type": "解答题",
+  "full_score": 3,
+  "rubric_point_count": 3
+ }
+]
