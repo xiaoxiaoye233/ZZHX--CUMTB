@@ -39,7 +39,7 @@ async function login() {
 <template>
   <main class="gemini-login">
     <div class="login-stack">
-      <h1 id="login-title" class="brand-title">智教慧学</h1>
+      <h1 id="login-title" class="brand-title">智慧学伴</h1>
 
       <form class="login-form" aria-labelledby="login-title" @submit.prevent="login">
         <input
