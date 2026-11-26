@@ -81,7 +81,7 @@ cd d:\Learing\ZJHX--CUMTB\stm32_print
 | 供电 | STM32-Type-C |
 | 烧录 | ST-Link（SWD） |
 
-**接线**：见 `firmware/接线图.png`，逐行对接，GND 全部共地。RC522 的 RST 由 3.3 V 直接拉高，不占 GPIO，因此固件里 `RST_PIN` 传的是 `MFRC522::UNUSED_PIN`。
+**接线**：见 `firmware/接线图.png`，按模块排针自上而下逐行对接，GND 全部共地。RC522 的 `IRQ` 悬空不接；`RST` 与 `3.3V` 都接 3.3 V，因此 RST 不占 GPIO，固件里 `RST_PIN` 传的是 `MFRC522::UNUSED_PIN`。CH340 的 `RXD` 接 `PA9`（USART1_TX）、`TXD` 接 `PA10`（USART1_RX）。
 
 **软件栈**
 
