@@ -5,9 +5,11 @@ import cytoscape from 'cytoscape'
 import {
   ArrowDownRight,
   ArrowUpLeft,
+  BookOpen,
   Check,
   ChevronDown,
   Download,
+  ExternalLink,
   FileCode2,
   GitBranch,
   Maximize2,
@@ -18,6 +20,8 @@ import {
   X,
 } from 'lucide-vue-next'
 import { useKnowledgeGraphStore } from '@/stores/knowledgeGraphStore'
+import { useTextbookStore } from '@/stores/textbookStore'
+import { normalizeTextbookRefs } from '@/utils/defaultKnowledgeGraph'
 import {
   exportKnowledgeGraphAsHtml,
   exportKnowledgeGraphAsXmind,
@@ -28,7 +32,20 @@ const props = defineProps({
 })
 
 const graphStore = useKnowledgeGraphStore()
+const textbookStore = useTextbookStore()
 const { nodes, edges, saving, saveMessage } = storeToRefs(graphStore)
+const { textbooks } = storeToRefs(textbookStore)
+
+const FALLBACK_TEXTBOOK_NAMES = [
+  'B01_相关资料切片.pdf',
+  'B02_相关资料切片.pdf',
+  'B03_相关资料切片.pdf',
+  'B04_相关资料切片.pdf',
+  'B05_相关资料切片.pdf',
+  'B06_相关资料切片.pdf',
+  'B07_相关资料切片.pdf',
+  'B08_相关资料切片.pdf',
+]
 
 const CARD_COLOR_PRESETS = [
   { label: '星海蓝', hex: '#3b82f6' },
@@ -79,13 +96,19 @@ const newPrevTargetId = ref('')
 const newPrevRelation = ref('')
 const newNextTargetId = ref('')
 const newNextRelation = ref('')
+const newRefFile = ref('')
+const newRefPage = ref(1)
+const newRefLabel = ref('')
 
-// 新增知识点弹窗状态（创建时可直接选颜色、填名称和介绍）
+// 新增知识点弹窗状态（创建时可直接选颜色、填名称、介绍及对应教材页码）
 const showCreateModal = ref(false)
 const createForm = reactive({
   name: '',
   color: '#3b82f6',
   description: '',
+  refFile: '',
+  refPage: 1,
+  refLabel: '',
 })
 
 const editForm = reactive({
@@ -100,6 +123,23 @@ let resizeObserver = null
 const selectedNode = computed(
   () => nodes.value.find((n) => n.id === selectedNodeId.value) || null,
 )
+
+const selectedTextbookRefs = computed(() =>
+  normalizeTextbookRefs(selectedNode.value?.textbook_refs),
+)
+
+const availableTextbookNames = computed(() => {
+  const fromStore = (textbooks.value || []).map((b) => b.name).filter(Boolean)
+  return fromStore.length ? fromStore : FALLBACK_TEXTBOOK_NAMES
+})
+
+function textbookOptionsWithCurrent(currentName) {
+  const list = [...availableTextbookNames.value]
+  if (currentName && !list.includes(currentName)) {
+    list.unshift(currentName)
+  }
+  return list
+}
 
 const incomingRelations = computed(() => {
   if (!selectedNodeId.value) return []
@@ -160,6 +200,9 @@ function syncEditForm(node) {
   newPrevRelation.value = ''
   newNextTargetId.value = ''
   newNextRelation.value = ''
+  newRefFile.value = ''
+  newRefPage.value = 1
+  newRefLabel.value = ''
 }
 
 function buildCyElements() {
@@ -450,6 +493,9 @@ function openCreateDialog() {
   createForm.name = ''
   createForm.color = '#3b82f6'
   createForm.description = ''
+  createForm.refFile = ''
+  createForm.refPage = 1
+  createForm.refLabel = ''
   showCreateModal.value = true
 }
 
@@ -471,11 +517,22 @@ async function confirmCreateNode() {
     spawnY = Math.round((ext.y1 + ext.y2) / 2)
   }
 
+  const initialRefs = createForm.refFile
+    ? [
+        {
+          name: createForm.refFile,
+          page: Math.max(1, Number.parseInt(createForm.refPage, 10) || 1),
+          label: createForm.refLabel.trim(),
+        },
+      ]
+    : []
+
   const newNode = {
     id: nextId,
     name,
     color: normalizeHex(createForm.color),
     description: createForm.description.trim(),
+    textbook_refs: initialRefs,
     x: spawnX,
     y: spawnY,
   }
@@ -487,6 +544,67 @@ async function confirmCreateNode() {
   )
   rebuildCytoscape({ fit: false })
   selectNodeById(nextId, { panTo: true })
+}
+
+function jumpToTextbookLocation(refItem) {
+  const fileName = String(refItem?.name || '').trim()
+  if (!fileName) return
+  const pageNum = Math.max(1, Number.parseInt(refItem?.page, 10) || 1)
+  textbookStore.openTextbookAtPage({
+    name: fileName,
+    title: fileName.replace(/\.[^.]+$/, ''),
+    page: pageNum,
+  })
+}
+
+async function addTextbookLocation() {
+  if (!props.isTeacher || !selectedNode.value || !newRefFile.value) return
+  const nextList = normalizeTextbookRefs(selectedNode.value.textbook_refs)
+  const pageNum = Math.max(1, Number.parseInt(newRefPage.value, 10) || 1)
+  nextList.push({
+    name: newRefFile.value,
+    page: pageNum,
+    label: newRefLabel.value.trim(),
+  })
+  selectedNode.value.textbook_refs = nextList
+  newRefFile.value = ''
+  newRefPage.value = 1
+  newRefLabel.value = ''
+  await graphStore.persistGraph(
+    { nodes: nodes.value, edges: edges.value },
+    '已添加对应教材位置',
+  )
+}
+
+async function updateTextbookLocation(index, patch) {
+  if (!props.isTeacher || !selectedNode.value) return
+  const nextList = normalizeTextbookRefs(selectedNode.value.textbook_refs)
+  if (!nextList[index]) return
+  const merged = {
+    ...nextList[index],
+    ...patch,
+  }
+  merged.name = String(merged.name || '').trim()
+  merged.page = Math.max(1, Number.parseInt(merged.page, 10) || 1)
+  merged.label = String(merged.label || '').trim()
+  if (!merged.name) return
+  nextList[index] = merged
+  selectedNode.value.textbook_refs = nextList
+  await graphStore.persistGraph(
+    { nodes: nodes.value, edges: edges.value },
+    '已保存教材位置配置',
+  )
+}
+
+async function removeTextbookLocation(index) {
+  if (!props.isTeacher || !selectedNode.value) return
+  const nextList = normalizeTextbookRefs(selectedNode.value.textbook_refs)
+  nextList.splice(index, 1)
+  selectedNode.value.textbook_refs = nextList
+  await graphStore.persistGraph(
+    { nodes: nodes.value, edges: edges.value },
+    '已移除教材位置',
+  )
 }
 
 async function deleteSelectedNode() {
@@ -620,6 +738,7 @@ function handleGlobalKeydown(event) {
 onMounted(async () => {
   window.addEventListener('pointerdown', handleGlobalPointerDown)
   window.addEventListener('keydown', handleGlobalKeydown)
+  textbookStore.fetchTextbooks()
   await graphStore.fetchGraph()
   await nextTick()
   initCytoscape()
@@ -817,6 +936,34 @@ onBeforeUnmount(() => {
             />
           </div>
 
+          <div class="editor-group">
+            <span class="editor-label">对应教材位置（选填）</span>
+            <select v-model="createForm.refFile" class="editor-select compact">
+              <option value="">暂不绑定教材文件</option>
+              <option v-for="fname in availableTextbookNames" :key="fname" :value="fname">
+                {{ fname }}
+              </option>
+            </select>
+            <div v-if="createForm.refFile" class="add-rel-sub">
+              <label class="tb-page-field">
+                <span>第</span>
+                <input
+                  v-model.number="createForm.refPage"
+                  type="number"
+                  min="1"
+                  class="editor-input compact tb-page-input"
+                />
+                <span>页</span>
+              </label>
+              <input
+                v-model="createForm.refLabel"
+                type="text"
+                class="editor-input compact"
+                placeholder="章节备注（选填）"
+              />
+            </div>
+          </div>
+
           <div class="modal-footer">
             <button type="button" class="kg-btn" @click="showCreateModal = false">取消</button>
             <button type="submit" class="kg-btn primary">创建</button>
@@ -905,6 +1052,115 @@ onBeforeUnmount(() => {
             <Trash2 :size="14" color="#ffffff" />
           </button>
         </div>
+
+        <div class="divider" />
+
+        <!-- 对应教材位置：点击一键跳转右侧阅读器对应页码，教师可自定义增删改文件与页码 -->
+        <section class="relation-section">
+          <h3 class="rel-heading book-tone">
+            <BookOpen :size="15" color="#93c5fd" />
+            <span>对应教材位置（{{ selectedTextbookRefs.length }}）</span>
+          </h3>
+
+          <div v-if="selectedTextbookRefs.length" class="rel-list">
+            <div
+              v-for="(refItem, rIdx) in selectedTextbookRefs"
+              :key="`${refItem.name}-${refItem.page}-${rIdx}`"
+              class="rel-edit-card tb-ref-edit-card"
+            >
+              <div class="rel-card-top">
+                <button
+                  type="button"
+                  class="tb-jump-header-btn"
+                  :title="`点击打开 ${refItem.name} 第 ${refItem.page} 页`"
+                  @click="jumpToTextbookLocation(refItem)"
+                >
+                  <BookOpen :size="13" color="#93c5fd" />
+                  <span class="tb-jump-text">{{ refItem.name }} · 第 {{ refItem.page }} 页</span>
+                  <ExternalLink :size="12" color="#93c5fd" class="tb-jump-ext" />
+                </button>
+                <button
+                  type="button"
+                  class="rel-remove-btn"
+                  title="移除此教材位置"
+                  @click="removeTextbookLocation(rIdx)"
+                >
+                  <Trash2 :size="12" color="#ffffff" />
+                </button>
+              </div>
+
+              <div class="tb-config-row">
+                <select
+                  :value="refItem.name"
+                  class="editor-select compact tb-file-select"
+                  aria-label="选择教材文件"
+                  @change="updateTextbookLocation(rIdx, { name: $event.target.value })"
+                >
+                  <option
+                    v-for="fname in textbookOptionsWithCurrent(refItem.name)"
+                    :key="fname"
+                    :value="fname"
+                  >
+                    {{ fname }}
+                  </option>
+                </select>
+
+                <label class="tb-page-field">
+                  <span>第</span>
+                  <input
+                    :value="refItem.page"
+                    type="number"
+                    min="1"
+                    class="editor-input compact tb-page-input"
+                    aria-label="教材页码"
+                    @change="updateTextbookLocation(rIdx, { page: $event.target.value })"
+                  />
+                  <span>页</span>
+                </label>
+              </div>
+
+              <input
+                :value="refItem.label"
+                type="text"
+                class="rel-note-input"
+                placeholder="章节或位置说明（选填，如 3.1 列代数式）"
+                @change="updateTextbookLocation(rIdx, { label: $event.target.value })"
+              />
+            </div>
+          </div>
+          <p v-else class="rel-empty">暂未配置教材位置，可在下方选择文件与页码添加</p>
+
+          <div class="add-rel-box">
+            <select v-model="newRefFile" class="editor-select compact">
+              <option value="">+ 添加对应教材位置…</option>
+              <option v-for="fname in availableTextbookNames" :key="fname" :value="fname">
+                {{ fname }}
+              </option>
+            </select>
+            <div v-if="newRefFile" class="add-rel-sub">
+              <label class="tb-page-field">
+                <span>第</span>
+                <input
+                  v-model.number="newRefPage"
+                  type="number"
+                  min="1"
+                  class="editor-input compact tb-page-input"
+                  placeholder="页码"
+                />
+                <span>页</span>
+              </label>
+              <input
+                v-model="newRefLabel"
+                type="text"
+                class="editor-input compact"
+                placeholder="章节说明（选填）"
+              />
+              <button type="button" class="mini-add-btn" @click="addTextbookLocation">
+                添加
+              </button>
+            </div>
+          </div>
+        </section>
 
         <div class="divider" />
 
@@ -1032,6 +1288,34 @@ onBeforeUnmount(() => {
         <section class="student-desc-box">
           <h3>介绍</h3>
           <p>{{ selectedNode.description || '暂无详细介绍' }}</p>
+        </section>
+
+        <section class="relation-section">
+          <h3 class="rel-heading book-tone">
+            <BookOpen :size="15" color="#93c5fd" />
+            <span>对应教材位置（{{ selectedTextbookRefs.length }}）</span>
+          </h3>
+
+          <div v-if="selectedTextbookRefs.length" class="rel-list">
+            <button
+              v-for="(refItem, rIdx) in selectedTextbookRefs"
+              :key="`${refItem.name}-${refItem.page}-${rIdx}`"
+              type="button"
+              class="student-tb-card"
+              :title="`点击在右侧阅读器打开 ${refItem.name} 第 ${refItem.page} 页`"
+              @click="jumpToTextbookLocation(refItem)"
+            >
+              <div class="s-tb-top">
+                <span class="s-tb-file">
+                  <BookOpen :size="13" color="#93c5fd" />
+                  <strong>{{ refItem.name }}</strong>
+                </span>
+                <span class="s-tb-page-pill">第 {{ refItem.page }} 页</span>
+              </div>
+              <p v-if="refItem.label" class="s-rel-note">{{ refItem.label }}</p>
+            </button>
+          </div>
+          <p v-else class="rel-empty">暂未配置对应教材位置</p>
         </section>
 
         <section class="relation-section">
@@ -1356,7 +1640,7 @@ onBeforeUnmount(() => {
 
 /* 右侧检查器与编辑器 */
 .kg-inspector {
-  width: 348px;
+  width: clamp(292px, 31%, 352px);
   height: 100%;
   flex-shrink: 0;
   background: #1d1d1d;
@@ -1513,6 +1797,132 @@ onBeforeUnmount(() => {
 
 .rel-heading.next-tone {
   color: #6ee7b7;
+}
+
+.rel-heading.book-tone {
+  color: #93c5fd;
+}
+
+.tb-ref-edit-card {
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.tb-jump-header-btn {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  height: auto;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #bfdbfe;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tb-jump-header-btn:hover {
+  background: rgba(59, 130, 246, 0.14);
+  color: #eff6ff;
+}
+
+.tb-jump-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-jump-ext {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.tb-config-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tb-file-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.tb-page-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #a8a8a8;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.tb-page-input {
+  width: 58px;
+  padding: 0 6px;
+  text-align: center;
+}
+
+.student-tb-card {
+  width: 100%;
+  height: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(23, 37, 64, 0.42);
+  border: 1px solid rgba(59, 130, 246, 0.34);
+  color: #eff6ff;
+  text-align: left;
+  letter-spacing: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.14s ease;
+}
+
+.student-tb-card:hover {
+  background: rgba(30, 58, 110, 0.56);
+  border-color: #60a5fa;
+  transform: translateY(-1px);
+}
+
+.s-tb-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.s-tb-file {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.s-tb-file strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.s-tb-page-pill {
+  padding: 1.5px 8px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.22);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .rel-list {

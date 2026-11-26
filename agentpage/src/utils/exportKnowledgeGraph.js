@@ -37,11 +37,21 @@ function escapeXml(value) {
 function sanitizeGraph(nodes = [], edges = []) {
   const cleanNodes = (Array.isArray(nodes) ? nodes : []).map((n, idx) => {
     const palette = derivePalette(n)
+    const refs = Array.isArray(n?.textbook_refs)
+      ? n.textbook_refs
+          .filter((r) => r && String(r.name || '').trim())
+          .map((r) => ({
+            name: String(r.name).trim(),
+            page: Math.max(1, Number.parseInt(r.page, 10) || 1),
+            label: String(r.label || '').trim(),
+          }))
+      : []
     return {
       id: String(n?.id || `node-${idx + 1}`).trim(),
       name: String(n?.name || '未命名知识点').trim() || '未命名知识点',
       theme: String(n?.theme || '').trim(),
       description: String(n?.description || '').trim(),
+      textbook_refs: refs,
       color: palette.border,
       bg: palette.bg,
       x: Number.isFinite(Number(n?.x)) ? Number(n.x) : 220 + (idx % 4) * 300,
@@ -463,6 +473,30 @@ export function buildKnowledgeGraphHtml({ nodes = [], edges = [], roleLabel = ''
       descP.textContent = node.description || '暂无详细介绍';
       descBox.append(descH, descP);
       inspector.appendChild(descBox);
+
+      if (Array.isArray(node.textbook_refs) && node.textbook_refs.length) {
+        const tbSec = document.createElement('div');
+        tbSec.className = 'rel-block';
+        const tbH = document.createElement('h3');
+        tbH.style.color = '#93c5fd';
+        tbH.textContent = '对应教材位置（' + node.textbook_refs.length + '）';
+        tbSec.appendChild(tbH);
+        for (const r of node.textbook_refs) {
+          const item = document.createElement('div');
+          item.className = 'rel-card';
+          item.style.cursor = 'default';
+          const st = document.createElement('strong');
+          st.textContent = r.name + ' · 第 ' + r.page + ' 页';
+          item.appendChild(st);
+          if (r.label) {
+            const sp = document.createElement('span');
+            sp.textContent = r.label;
+            item.appendChild(sp);
+          }
+          tbSec.appendChild(item);
+        }
+        inspector.appendChild(tbSec);
+      }
 
       const prevEdges = edges.filter(e => e.target === node.id);
       const nextEdges = edges.filter(e => e.source === node.id);
@@ -901,6 +935,13 @@ export function buildKnowledgeGraphXmindBytes({ nodes = [], edges = [] } = {}) {
 
       const noteLines = []
       if (node.description) noteLines.push(`【知识点介绍】\n${node.description}`)
+      if (node.textbook_refs?.length) {
+        noteLines.push(
+          `【对应教材位置】\n${node.textbook_refs
+            .map((r) => `• ${r.name} 第 ${r.page} 页${r.label ? `（${r.label}）` : ''}`)
+            .join('\n')}`,
+        )
+      }
       if (prevEdges.length) {
         noteLines.push(
           `【前置知识】\n${prevEdges

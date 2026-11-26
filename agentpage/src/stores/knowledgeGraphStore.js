@@ -5,7 +5,10 @@ import {
   resetKnowledgeGraphAPI,
   saveKnowledgeGraphAPI,
 } from '@/apis/agent'
-import { cloneDefaultGraph } from '@/utils/defaultKnowledgeGraph'
+import {
+  cloneDefaultGraph,
+  normalizeGraphNode,
+} from '@/utils/defaultKnowledgeGraph'
 
 const LOCAL_STORAGE_KEY = 'zjhx-knowledge-graph-v2'
 
@@ -38,8 +41,10 @@ export const useKnowledgeGraphStore = defineStore('knowledgeGraph', () => {
   const saving = ref(false)
   const saveMessage = ref('')
 
-  function applyGraph(data) {
-    nodes.value = Array.isArray(data?.nodes) ? data.nodes.map((n) => ({ ...n })) : []
+  function applyGraph(data, { backfillDefaults = true } = {}) {
+    nodes.value = Array.isArray(data?.nodes)
+      ? data.nodes.map((n) => normalizeGraphNode(n, { backfillDefaults }))
+      : []
     edges.value = Array.isArray(data?.edges) ? data.edges.map((e) => ({ ...e })) : []
   }
 
@@ -48,15 +53,15 @@ export const useKnowledgeGraphStore = defineStore('knowledgeGraph', () => {
     try {
       const res = await getKnowledgeGraphAPI()
       if (Array.isArray(res?.data?.nodes)) {
-        applyGraph(res.data)
+        applyGraph(res.data, { backfillDefaults: true })
         writeLocalGraph({ nodes: nodes.value, edges: edges.value })
         return
       }
       const local = readLocalGraph() || cloneDefaultGraph()
-      applyGraph(local)
+      applyGraph(local, { backfillDefaults: true })
     } catch {
       const local = readLocalGraph() || cloneDefaultGraph()
-      applyGraph(local)
+      applyGraph(local, { backfillDefaults: true })
     } finally {
       loading.value = false
     }
@@ -64,7 +69,7 @@ export const useKnowledgeGraphStore = defineStore('knowledgeGraph', () => {
 
   async function persistGraph(nextGraph, tip = '已保存图谱更改') {
     const payload = nextGraph || { nodes: nodes.value, edges: edges.value }
-    applyGraph(payload)
+    applyGraph(payload, { backfillDefaults: false })
     writeLocalGraph(payload)
 
     saving.value = true
