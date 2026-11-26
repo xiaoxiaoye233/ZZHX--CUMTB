@@ -1,8 +1,11 @@
 import asyncio
 import logging
+import re
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -10,6 +13,7 @@ from starlette import status
 from config.db_conf import get_db
 from crud import teacher
 from utils import file_tools
+from utils.class_report import build_class_report_summary, render_class_report_bytes
 from utils.print_access import require_teacher
 from utils.response import success_response
 
@@ -87,6 +91,32 @@ async def get_class_report_card(
     if report is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="未找到该班级")
     return success_response(message="获取班级成绩单成功", data=report)
+
+
+@router.get("/teacher/report-card/pdf")
+async def download_class_learning_report_pdf(
+    class_id: Annotated[str, Query(min_length=1, max_length=64)],
+    db: AsyncSession = Depends(get_db),
+):
+    # 生成并返回当前选中班级的学情报告 PDF（包含平均成绩、各知识点掌握情况及最好/最差知识点总结）
+    cid = class_id.strip()
+    payload = await teacher.get_class_learning_report(db, cid)
+    if payload is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"未找到班级 {cid} 的学情数据")
+    payload["summary"] = build_class_report_summary(payload)
+    pdf_bytes = await asyncio.to_thread(render_class_report_bytes, payload)
+    ascii_fallback = re.sub(r"[^A-Za-z0-9_-]+", "_", cid).strip("_") or "class"
+    encoded_name = quote(f"班级学情报告_{cid}.pdf")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f"attachment; filename=\"class_report_{ascii_fallback}.pdf\"; "
+                f"filename*=UTF-8''{encoded_name}"
+            ),
+        },
+    )
 
 
 @router.get("/teacher/tasks")

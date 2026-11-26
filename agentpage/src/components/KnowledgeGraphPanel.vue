@@ -6,6 +6,10 @@ import {
   ArrowDownRight,
   ArrowUpLeft,
   Check,
+  ChevronDown,
+  Download,
+  FileCode2,
+  GitBranch,
   Maximize2,
   Plus,
   RotateCcw,
@@ -14,6 +18,10 @@ import {
   X,
 } from 'lucide-vue-next'
 import { useKnowledgeGraphStore } from '@/stores/knowledgeGraphStore'
+import {
+  exportKnowledgeGraphAsHtml,
+  exportKnowledgeGraphAsXmind,
+} from '@/utils/exportKnowledgeGraph'
 
 const props = defineProps({
   isTeacher: Boolean,
@@ -62,6 +70,10 @@ function deriveCardPalette(node) {
 }
 
 const canvasRef = ref(null)
+const exportMenuRef = ref(null)
+const exportMenuOpen = ref(false)
+const exportNotice = ref('')
+let exportTimer = null
 const selectedNodeId = ref('')
 const newPrevTargetId = ref('')
 const newPrevRelation = ref('')
@@ -555,7 +567,59 @@ async function handleResetGraph() {
   rebuildCytoscape({ fit: true })
 }
 
+function snapshotNodesWithLivePositions() {
+  if (!cy) return nodes.value
+  return nodes.value.map((n) => {
+    const el = cy.getElementById(n.id)
+    if (el && !el.empty()) {
+      const pos = el.position()
+      return { ...n, x: Math.round(pos.x), y: Math.round(pos.y) }
+    }
+    return { ...n }
+  })
+}
+
+function showExportFeedback(text) {
+  exportNotice.value = text
+  if (exportTimer) window.clearTimeout(exportTimer)
+  exportTimer = window.setTimeout(() => {
+    exportNotice.value = ''
+  }, 3200)
+}
+
+function handleExportGraph(format) {
+  exportMenuOpen.value = false
+  if (!nodes.value.length) return
+  const liveNodes = snapshotNodesWithLivePositions()
+  if (format === 'xmind') {
+    exportKnowledgeGraphAsXmind({ nodes: liveNodes, edges: edges.value })
+    showExportFeedback('已导出 XMind 思维导图 (.xmind)')
+  } else {
+    exportKnowledgeGraphAsHtml({
+      nodes: liveNodes,
+      edges: edges.value,
+      isTeacher: props.isTeacher,
+    })
+    showExportFeedback('已导出交互式 HTML 图谱 (.html)')
+  }
+}
+
+function handleGlobalPointerDown(event) {
+  if (!exportMenuOpen.value) return
+  if (exportMenuRef.value && !exportMenuRef.value.contains(event.target)) {
+    exportMenuOpen.value = false
+  }
+}
+
+function handleGlobalKeydown(event) {
+  if (event.key === 'Escape' && exportMenuOpen.value) {
+    exportMenuOpen.value = false
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('pointerdown', handleGlobalPointerDown)
+  window.addEventListener('keydown', handleGlobalKeydown)
   await graphStore.fetchGraph()
   await nextTick()
   initCytoscape()
@@ -572,6 +636,9 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', handleGlobalPointerDown)
+  window.removeEventListener('keydown', handleGlobalKeydown)
+  if (exportTimer) window.clearTimeout(exportTimer)
   resizeObserver?.disconnect()
   cy?.destroy()
   cy = null
@@ -625,7 +692,61 @@ onBeforeUnmount(() => {
             <span>重置</span>
           </button>
 
-          <span v-if="saveMessage && isTeacher" class="save-toast" role="status">
+          <!-- 教师端与学生端共用的知识图谱导出菜单（支持 HTML 与 XMind） -->
+          <div ref="exportMenuRef" class="export-menu-wrap">
+            <button
+              type="button"
+              class="kg-btn export-trigger"
+              :disabled="!nodes.length"
+              :aria-expanded="exportMenuOpen"
+              aria-haspopup="menu"
+              title="导出当前知识图谱为 HTML 或 XMind"
+              @click="exportMenuOpen = !exportMenuOpen"
+            >
+              <Download :size="14" color="#ffffff" :stroke-width="1.9" />
+              <span>导出图谱</span>
+              <ChevronDown
+                :size="13"
+                color="#ffffff"
+                :stroke-width="1.9"
+                class="export-chevron"
+                :class="{ open: exportMenuOpen }"
+              />
+            </button>
+
+            <div v-if="exportMenuOpen" class="export-dropdown" role="menu">
+              <button
+                type="button"
+                class="export-option"
+                role="menuitem"
+                @click="handleExportGraph('html')"
+              >
+                <FileCode2 :size="16" color="#60a5fa" :stroke-width="1.9" />
+                <div class="export-opt-text">
+                  <strong>导出为 HTML 网页</strong>
+                  <span>独立可交互离线图谱 (.html)</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="export-option"
+                role="menuitem"
+                @click="handleExportGraph('xmind')"
+              >
+                <GitBranch :size="16" color="#34d399" :stroke-width="1.9" />
+                <div class="export-opt-text">
+                  <strong>导出为 XMind 导图</strong>
+                  <span>标准思维导图含备注与关联 (.xmind)</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <span v-if="exportNotice" class="save-toast" role="status">
+            {{ exportNotice }}
+          </span>
+          <span v-else-if="saveMessage && isTeacher" class="save-toast" role="status">
             {{ saveMessage }}
           </span>
         </div>
@@ -1039,6 +1160,78 @@ onBeforeUnmount(() => {
 
 .kg-btn.primary:hover {
   background: #2563eb;
+}
+
+.kg-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.export-chevron {
+  transition: transform 0.16s ease;
+}
+
+.export-chevron.open {
+  transform: rotate(180deg);
+}
+
+.export-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 228px;
+  padding: 6px;
+  border-radius: 10px;
+  background: #202024;
+  border: 1px solid #383840;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.62);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 30;
+}
+
+.export-option {
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #f4f4f5;
+  text-align: left;
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+
+.export-option:hover {
+  background: #2d2d34;
+}
+
+.export-opt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.export-opt-text strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.export-opt-text span {
+  font-size: 11px;
+  color: #9ca3af;
 }
 
 .cy-canvas {

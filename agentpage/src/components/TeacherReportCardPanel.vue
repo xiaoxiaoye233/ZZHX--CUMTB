@@ -1,7 +1,10 @@
 <script setup>
 import { computed, onMounted, ref, shallowRef, watch } from 'vue'
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-vue-next'
-import { getTeacherReportCardAPI } from '@/apis/analysis'
+import { ArrowDown, ArrowUp, ArrowUpDown, Download, Loader2 } from 'lucide-vue-next'
+import {
+  downloadClassLearningReportPdfAPI,
+  getTeacherReportCardAPI,
+} from '@/apis/analysis'
 import StudentReportPanel from '@/components/StudentReportPanel.vue'
 
 const props = defineProps({
@@ -14,6 +17,9 @@ const sortOrder = ref('default') // 'default' | 'descending' | 'ascending'
 const viewingStudentId = ref('')
 const loading = ref(true)
 const error = ref('')
+const downloading = ref(false)
+const downloadNotice = ref('')
+const downloadError = ref(false)
 
 watch(
   () => props.resetSeq,
@@ -70,6 +76,8 @@ async function loadReport(classId = selectedClass.value) {
   selectedClass.value = classId
   loading.value = true
   error.value = ''
+  downloadNotice.value = ''
+  downloadError.value = false
   try {
     const { data } = await getTeacherReportCardAPI(classId)
     report.value = data
@@ -78,6 +86,32 @@ async function loadReport(classId = selectedClass.value) {
     error.value = err.message || '加载成绩单失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function handleDownloadClassPdf() {
+  const cid = String(selectedClass.value || '').trim()
+  if (!cid || downloading.value) return
+  downloading.value = true
+  downloadNotice.value = ''
+  downloadError.value = false
+
+  try {
+    const { blob, filename } = await downloadClassLearningReportPdfAPI(cid)
+    const blobUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = blobUrl
+    anchor.download = filename
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1500)
+    downloadNotice.value = `${cid} 班级学情报告已开始下载`
+  } catch (err) {
+    downloadError.value = true
+    downloadNotice.value = err?.message || '下载班级学情报告失败，请确认后端服务已启动'
+  } finally {
+    downloading.value = false
   }
 }
 
@@ -127,6 +161,35 @@ onMounted(() => loadReport())
           <option value="descending">总分从高到低</option>
           <option value="ascending">总分从低到高</option>
         </select>
+      </div>
+
+      <div class="toolbar-actions">
+        <span
+          v-if="downloadNotice"
+          class="download-toast"
+          :class="{ 'is-error': downloadError }"
+          role="status"
+        >
+          {{ downloadNotice }}
+        </span>
+
+        <button
+          type="button"
+          class="download-pdf-btn"
+          :disabled="!selectedClass || downloading || loading"
+          :aria-label="`下载 ${selectedClass || '当前'} 班级学情报告 PDF`"
+          :title="`下载 ${selectedClass || '当前'} 班级学情报告 PDF`"
+          @click="handleDownloadClassPdf"
+        >
+          <Loader2
+            v-if="downloading"
+            :size="17"
+            color="#ffffff"
+            :stroke-width="2"
+            class="spin-icon"
+          />
+          <Download v-else :size="17" color="#ffffff" :stroke-width="2" />
+        </button>
       </div>
     </div>
 
@@ -228,6 +291,57 @@ onMounted(() => loadReport())
 .report-toolbar select {
   color-scheme: dark;
   cursor: pointer;
+}
+
+.toolbar-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.download-toast {
+  font-size: 12px;
+  color: #86efac;
+}
+
+.download-toast.is-error {
+  color: #fca5a5;
+}
+
+.download-pdf-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #3c3c3c;
+  border-radius: 8px;
+  background: #2b2b2b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.14s ease;
+}
+
+.download-pdf-btn:hover:not(:disabled) {
+  background: #0a84ff;
+  border-color: #3b9eff;
+  transform: translateY(-1px);
+}
+
+.download-pdf-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spin-icon {
+  animation: report-spin 0.9s linear infinite;
+}
+
+@keyframes report-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .report-state {

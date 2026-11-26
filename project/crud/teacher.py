@@ -44,6 +44,7 @@ from models.dataset import (  # noqa: E402
 )
 from models.users import Base  # noqa: E402
 from utils.file_tools import read_csv_file, read_json_file, to_float, to_int  # noqa: E402
+from utils.knowledge_graph import load_knowledge_graph  # noqa: E402
 
 
 # 把 00_字典 ~ 04_质量与剔除 的数据全量写入 MySQL 数据库
@@ -821,6 +822,348 @@ async def get_teacher_tasks(db: AsyncSession) -> dict:
         return _format_teacher_tasks_rows(raw_rows, ind_meta)
     except Exception:
         return get_teacher_tasks_from_csv()
+
+
+def _assemble_class_learning_report(
+    cid: str,
+    members: list[dict],
+    ind_summary_rows: list[dict],
+    ind_meta_list: list[dict],
+) -> dict:
+    meta_by_id = {item["indicator_id"]: item for item in ind_meta_list if item.get("indicator_id")}
+    graph_data = load_knowledge_graph()
+    graph_nodes = graph_data.get("nodes") if isinstance(graph_data, dict) else []
+    graph_by_id = {
+        str(n.get("id") or "").strip(): n
+        for n in (graph_nodes or [])
+        if isinstance(n, dict) and str(n.get("id") or "").strip()
+    }
+
+    student_count = len(members)
+    knowledge_points: list[dict] = []
+    seen_ids: set[str] = set()
+    seen_names: set[str] = set()
+
+    for row in ind_summary_rows:
+        ind_id = str(row.get("indicator_id") or "").strip()
+        raw_name = str(row.get("indicator_name") or "").strip()
+        meta = meta_by_id.get(ind_id, {})
+        g_node = graph_by_id.get(ind_id)
+
+        display_name = (
+            (str(g_node.get("name") or "").strip() if g_node else "")
+            or raw_name
+            or meta.get("indicator_name")
+            or ind_id
+        )
+        theme_name = (
+            (str(g_node.get("theme") or "").strip() if g_node else "")
+            or meta.get("theme_name")
+            or str(row.get("theme_id") or "").strip()
+        )
+        score = to_float(row.get("score"))
+        full_score = to_float(row.get("full_score"))
+        has_record = score is not None and full_score is not None and full_score > 0
+        score_rate = round(score / full_score, 4) if has_record else to_float(row.get("score_rate"))
+
+        knowledge_points.append(
+            {
+                "id": ind_id or display_name,
+                "name": display_name,
+                "theme_id": str(row.get("theme_id") or meta.get("theme_id") or "").strip(),
+                "theme_name": theme_name,
+                "score": score,
+                "full_score": full_score,
+                "score_rate": score_rate,
+                "recorded_students": to_int(row.get("recorded_students")) or 0,
+                "student_count": to_int(row.get("student_count")) or student_count,
+                "done_questions_total": to_int(row.get("done_questions_total")) or 0,
+                "eligible_questions_total": to_int(row.get("eligible_questions_total")) or 0,
+                "has_record": has_record,
+                "textbook_scope": meta.get("textbook_scope") or "",
+            }
+        )
+        if ind_id:
+            seen_ids.add(ind_id)
+        if display_name:
+            seen_names.add(display_name)
+        if raw_name:
+            seen_names.add(raw_name)
+
+    # 补充指标字典中存在但该班尚无汇总记录的指标
+    for d_ind in ind_meta_list:
+        iid = d_ind["indicator_id"]
+        iname = d_ind["indicator_name"]
+        if iid in seen_ids or (iname and iname in seen_names):
+            continue
+        g_node = graph_by_id.get(iid)
+        display_name = (str(g_node.get("name") or "").strip() if g_node else "") or iname or iid
+        knowledge_points.append(
+            {
+                "id": iid,
+                "name": display_name,
+                "theme_id": d_ind.get("theme_id") or "",
+                "theme_name": d_ind.get("theme_name") or "",
+                "score": None,
+                "full_score": None,
+                "score_rate": None,
+                "recorded_students": 0,
+                "student_count": student_count,
+                "done_questions_total": 0,
+                "eligible_questions_total": 0,
+                "has_record": False,
+                "textbook_scope": d_ind.get("textbook_scope") or "",
+            }
+        )
+        seen_ids.add(iid)
+        seen_names.add(display_name)
+
+    # 补充教师在「知识梳理」中动态新增的知识点节点
+    for n in graph_nodes or []:
+        if not isinstance(n, dict):
+            continue
+        nid = str(n.get("id") or "").strip()
+        nname = str(n.get("name") or "").strip()
+        if not nname or nid in seen_ids or nname in seen_names:
+            continue
+        knowledge_points.append(
+            {
+                "id": nid or nname,
+                "name": nname,
+                "theme_id": "",
+                "theme_name": str(n.get("theme") or "").strip(),
+                "score": None,
+                "full_score": None,
+                "score_rate": None,
+                "recorded_students": 0,
+                "student_count": student_count,
+                "done_questions_total": 0,
+                "eligible_questions_total": 0,
+                "has_record": False,
+                "textbook_scope": "",
+            }
+        )
+        if nid:
+            seen_ids.add(nid)
+        seen_names.add(nname)
+
+    scored_kps = [kp for kp in knowledge_points if kp.get("score_rate") is not None]
+    best_kps: list[dict] = []
+    worst_kps: list[dict] = []
+    if scored_kps:
+        best_rate = max(float(kp["score_rate"]) for kp in scored_kps)
+        worst_rate = min(float(kp["score_rate"]) for kp in scored_kps)
+        has_spread = (best_rate - worst_rate) >= 1e-6
+        for kp in knowledge_points:
+            r = kp.get("score_rate")
+            kp["is_best"] = r is not None and abs(float(r) - best_rate) < 1e-6
+            kp["is_worst"] = has_spread and r is not None and abs(float(r) - worst_rate) < 1e-6
+        best_kps = [kp for kp in scored_kps if abs(float(kp["score_rate"]) - best_rate) < 1e-6]
+        worst_kps = [kp for kp in scored_kps if abs(float(kp["score_rate"]) - worst_rate) < 1e-6]
+    else:
+        for kp in knowledge_points:
+            kp["is_best"] = False
+            kp["is_worst"] = False
+
+    excellent_count = sum(1 for kp in scored_kps if float(kp["score_rate"]) >= 0.8)
+    good_count = sum(1 for kp in scored_kps if 0.6 <= float(kp["score_rate"]) < 0.8)
+    weak_count = sum(1 for kp in scored_kps if float(kp["score_rate"]) < 0.6)
+
+    scores = [float(m["score"]) for m in members if m.get("score") is not None]
+    fulls = [float(m["full_score"]) for m in members if m.get("full_score") is not None]
+    avg_score = round(sum(scores) / len(scores), 2) if scores else None
+    max_score = round(max(scores), 2) if scores else None
+    min_score = round(min(scores), 2) if scores else None
+    total_score = round(sum(scores), 2) if scores else None
+    total_full_score = round(sum(fulls), 2) if fulls else None
+    overall_score_rate = (
+        round(sum(scores) / sum(fulls), 4)
+        if scores and fulls and sum(fulls) > 0
+        else None
+    )
+
+    return {
+        "class_id": cid,
+        "overall": {
+            "student_count": student_count,
+            "scored_student_count": len(scores),
+            "avg_score": avg_score,
+            "max_score": max_score,
+            "min_score": min_score,
+            "total_score": total_score,
+            "total_full_score": total_full_score,
+            "overall_score_rate": overall_score_rate,
+            "knowledge_point_count": len(knowledge_points),
+            "scored_knowledge_point_count": len(scored_kps),
+            "excellent_count": excellent_count,
+            "good_count": good_count,
+            "weak_count": weak_count,
+        },
+        "best_knowledge_points": best_kps,
+        "worst_knowledge_points": worst_kps,
+        "knowledge_points": knowledge_points,
+    }
+
+
+def get_class_learning_report_from_files(class_id: str) -> dict | None:
+    """当 MySQL 未启动时，从本地 CSV / JSON 数据层组装班级学情报告。"""
+    cid = str(class_id or "").strip()
+    if not cid:
+        return None
+
+    members: list[dict] = []
+    for row in read_csv_file(dataset_dir / "02_按班级" / "班级总表.csv"):
+        if str(row.get("班级") or "").strip() == cid:
+            members.append(
+                {
+                    "student_id": str(row.get("学生") or "").strip(),
+                    "score": to_float(row.get("得分")),
+                    "full_score": to_float(row.get("满分")),
+                }
+            )
+
+    if not members and students_data_dir.is_dir():
+        for folder in sorted(students_data_dir.iterdir()):
+            if not folder.is_dir():
+                continue
+            blob = read_json_file(folder / f"{folder.name}.json")
+            st = blob.get("student") if isinstance(blob, dict) else None
+            if isinstance(st, dict) and str(st.get("class_id") or "").strip() == cid:
+                members.append(
+                    {
+                        "student_id": str(st.get("student_id") or folder.name).strip(),
+                        "score": to_float(st.get("score_total")),
+                        "full_score": to_float(st.get("full_score_total")),
+                    }
+                )
+
+    if not members:
+        return None
+
+    ind_meta_list: list[dict] = []
+    for row in read_csv_file(dataset_dir / "00_字典" / "指标字典.csv"):
+        iid = str(row.get("指标编号") or "").strip()
+        if iid:
+            ind_meta_list.append(
+                {
+                    "indicator_id": iid,
+                    "indicator_name": str(row.get("指标名称") or "").strip(),
+                    "theme_id": str(row.get("主题编号") or "").strip(),
+                    "theme_name": str(row.get("主题名称") or "").strip(),
+                    "textbook_scope": str(row.get("教材范围") or "").strip(),
+                }
+            )
+
+    ind_summary_rows: list[dict] = []
+    for row in read_csv_file(dataset_dir / "02_按班级" / "班级_指标汇总.csv"):
+        if str(row.get("群体") or "").strip() == cid:
+            ind_summary_rows.append(
+                {
+                    "indicator_id": str(row.get("指标") or "").strip(),
+                    "indicator_name": str(row.get("指标名称") or "").strip(),
+                    "theme_id": str(row.get("主题") or "").strip(),
+                    "student_count": to_int(row.get("人数")),
+                    "recorded_students": to_int(row.get("有记录人数")),
+                    "eligible_questions_total": to_int(row.get("可考题数合计")),
+                    "done_questions_total": to_int(row.get("做过题数合计")),
+                    "score": to_float(row.get("得分")),
+                    "full_score": to_float(row.get("满分")),
+                    "score_rate": to_float(row.get("得分率")),
+                }
+            )
+
+    return _assemble_class_learning_report(cid, members, ind_summary_rows, ind_meta_list)
+
+
+async def get_class_learning_report(db: AsyncSession, class_id: str) -> dict | None:
+    """获取指定班级的学情报告数据：平均成绩、最好/最差知识点与各知识点掌握情况。"""
+    cid = str(class_id or "").strip()
+    if not cid:
+        return None
+
+    try:
+        css_rows = (
+            await db.execute(
+                select(ClassStudentSummary)
+                .where(ClassStudentSummary.class_id == cid)
+                .order_by(ClassStudentSummary.student_id)
+            )
+        ).scalars().all()
+
+        members: list[dict] = [
+            {
+                "student_id": r.student_id,
+                "score": r.score,
+                "full_score": r.full_score,
+            }
+            for r in css_rows
+        ]
+
+        if not members:
+            prof_rows = (
+                await db.execute(
+                    select(StudentProfile)
+                    .where(StudentProfile.class_id == cid)
+                    .order_by(StudentProfile.student_id)
+                )
+            ).scalars().all()
+            members = [
+                {
+                    "student_id": r.student_id,
+                    "score": r.score_total,
+                    "full_score": r.full_score_total,
+                }
+                for r in prof_rows
+            ]
+
+        if not members:
+            any_profile = await db.scalar(select(StudentProfile.student_id).limit(1))
+            if any_profile is None:
+                return get_class_learning_report_from_files(cid)
+            return None
+
+        ind_rows = (
+            await db.execute(select(DictIndicator).order_by(DictIndicator.indicator_id))
+        ).scalars().all()
+        ind_meta_list = [
+            {
+                "indicator_id": r.indicator_id,
+                "indicator_name": r.indicator_name,
+                "theme_id": r.theme_id,
+                "theme_name": r.theme_name or "",
+                "textbook_scope": r.textbook_scope or "",
+            }
+            for r in ind_rows
+        ]
+
+        cis_rows = (
+            await db.execute(
+                select(ClassIndicatorSummary)
+                .where(ClassIndicatorSummary.group_name == cid)
+                .order_by(ClassIndicatorSummary.indicator_id)
+            )
+        ).scalars().all()
+        ind_summary_rows = [
+            {
+                "indicator_id": r.indicator_id,
+                "indicator_name": r.indicator_name or "",
+                "theme_id": r.theme_id or "",
+                "student_count": r.student_count,
+                "recorded_students": r.recorded_students,
+                "eligible_questions_total": r.eligible_questions_total,
+                "done_questions_total": r.done_questions_total,
+                "score": r.score,
+                "full_score": r.full_score,
+                "score_rate": r.score_rate,
+            }
+            for r in cis_rows
+        ]
+
+        return _assemble_class_learning_report(cid, members, ind_summary_rows, ind_meta_list)
+    except Exception:
+        if db.in_transaction():
+            await db.rollback()
+        return get_class_learning_report_from_files(cid)
 
 
 def _ensure_database_exists() -> None:

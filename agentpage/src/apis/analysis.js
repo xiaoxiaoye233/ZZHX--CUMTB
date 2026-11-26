@@ -6,6 +6,34 @@ export const getTeacherReportCardAPI = (classId) => {
   return request({ url: '/api/teacher/report-card', params: { class_id: classId } })
 }
 
+// 教师端「成绩单」页面：下载当前选中班级的学情报告 PDF
+export const downloadClassLearningReportPdfAPI = async (classId) => {
+  const cleanClassId = String(classId || '').trim()
+  const query = new URLSearchParams({ class_id: cleanClassId }).toString()
+  const response = await fetch(`${baseURL}/api/teacher/report-card/pdf?${query}`, {
+    method: 'GET',
+    credentials: 'include',
+  })
+  if (!response.ok) {
+    const isJSON = response.headers.get('content-type')?.includes('application/json')
+    const errBody = isJSON ? await response.json() : null
+    const message =
+      errBody?.message ||
+      errBody?.error?.message ||
+      errBody?.detail?.error?.message ||
+      (typeof errBody?.detail === 'string' ? errBody.detail : '') ||
+      `下载班级学情报告失败（${response.status}）`
+    const error = new Error(message)
+    error.status = response.status
+    throw error
+  }
+  const blob = await response.blob()
+  return {
+    blob,
+    filename: `班级学情报告_${cleanClassId}.pdf`,
+  }
+}
+
 // 进入学生路由时请求该学生的成绩与知识点得分表（student）
 export const getStudentScoreTableAPI = (studentId) => {
   return request({ url: `/api/students/${encodeURIComponent(studentId)}/score-table` })
